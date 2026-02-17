@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sgp4
+skyfield
+scikit-learn
+requests
+numpy
+python-multipart
