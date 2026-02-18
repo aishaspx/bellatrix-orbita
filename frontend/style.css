@@ -429,3 +429,158 @@ body {
     height: 100%;
     width: 100%;
 }
+
+/* =============================================
+   MOBILE RESPONSIVE DESIGN
+   ============================================= */
+
+/* --- Tablet (≤ 1024px) --- */
+@media (max-width: 1024px) {
+    .nav-bar {
+        padding: 1rem 1.5rem;
+    }
+
+    .nav-links {
+        gap: 1.2rem;
+    }
+
+    .nav-item {
+        font-size: 0.8rem;
+    }
+
+    .section-container {
+        padding: 2rem 1.5rem;
+    }
+
+    .calculator-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        grid-template-areas:
+            "list"
+            "detail"
+            "viz";
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* --- Mobile (≤ 768px) --- */
+@media (max-width: 768px) {
+    .nav-bar {
+        padding: 0.8rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .nav-brand {
+        font-size: 1.2rem;
+    }
+
+    .nav-right {
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .nav-links {
+        gap: 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .nav-item {
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+
+    .section-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .calculator-layout {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "list"
+            "detail"
+            "viz";
+        gap: 1rem;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-panel {
+        padding: 1rem;
+    }
+
+    .detail-header {
+        font-size: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.8rem;
+    }
+
+    .viz-wrapper {
+        min-height: 250px;
+    }
+
+    /* Home page */
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.9rem;
+    }
+
+    /* Cards */
+    .sat-card {
+        padding: 1rem;
+    }
+}
+
+/* --- Small phones (≤ 480px) --- */
+@media (max-width: 480px) {
+    .nav-links {
+        display: none;
+        /* Hide nav links on very small screens */
+    }
+
+    .nav-bar {
+        justify-content: space-between;
+    }
+
+    .section-container {
+        padding: 1rem 0.75rem;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-header {
+        font-size: 0.9rem;
+    }
+
+    .detail-header>div {
+        flex-wrap: wrap;
+    }
+
+    .viz-wrapper {
+        min-height: 200px;
+    }
+
+    .hero-title {
+        font-size: 1.6rem;
+    }
+
+    /* Stack export buttons vertically */
+    .detail-header>div {
+        gap: 0.3rem;
+    }
+}

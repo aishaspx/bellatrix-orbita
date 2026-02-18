@@ -137,7 +137,10 @@
                 g_copyright_title: "Copyright & Rights",
                 g_copyright_text: "© 2026 Bellatrix Orbita Project. All rights reserved. Data provided by NORAD, NASA, SpaceX and CelesTrak. This platform is for educational and research purposes. All orbital visualizations are generated in real-time based on public TLE data.",
 
-                btn_map: "Map"
+                btn_map: "Map",
+                btn_csv: "CSV",
+                btn_pdf: "PDF",
+                btn_clear: "Clear History"
             },
             ru: {
                 nav_home: "Главная", nav_calc: "Калькулятор", nav_guide: "Справка", nav_map: "Карта", nav_forecast: "AI Прогноз",
@@ -241,7 +244,10 @@
                 det_dist: "Дист",
                 det_time: "Время",
 
-                btn_map: "Карта"
+                btn_map: "Карта",
+                btn_csv: "CSV",
+                btn_pdf: "PDF",
+                btn_clear: "Очистить историю"
             }
         };
 
@@ -505,14 +511,34 @@
                 <div className="detail-panel">
                     <div className="detail-header">
                         {t.detail_title}: {sat.name}
-                        {/* Show on Map Button */}
-                        <button onClick={onShowMap} style={{
-                            marginLeft: 'auto', background: 'transparent',
-                            border: '1px solid #00f3ff', color: '#00f3ff',
-                            padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'
-                        }}>
-                            🗺️ {t.btn_map}
-                        </button>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                            {/* Show on Map Button */}
+                            <button onClick={onShowMap} style={{
+                                background: 'transparent',
+                                border: '1px solid #00f3ff', color: '#00f3ff',
+                                padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'
+                            }}>
+                                🗺️ {t.btn_map}
+                            </button>
+                            {/* CSV Export */}
+                            <a href={`${API_BASE}/export/csv/${sat.norad_id}`} download style={{
+                                background: 'transparent',
+                                border: '1px solid #00ff88', color: '#00ff88',
+                                padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem',
+                                textDecoration: 'none', display: 'inline-flex', alignItems: 'center'
+                            }}>
+                                📊 {t.btn_csv}
+                            </a>
+                            {/* PDF Export */}
+                            <a href={`${API_BASE}/export/pdf/${sat.norad_id}`} download style={{
+                                background: 'transparent',
+                                border: '1px solid #bc13fe', color: '#bc13fe',
+                                padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem',
+                                textDecoration: 'none', display: 'inline-flex', alignItems: 'center'
+                            }}>
+                                📄 {t.btn_pdf}
+                            </a>
+                        </div>
                     </div>
 
                     {/* Collision Alert Box */}
@@ -966,20 +992,49 @@
             )
         }
 
+        const HISTORY_KEY = "bellatrix_sat_history";
+
         function CalculatorView({ t, selectedSat, setSelectedSat, showOnMap }) {
             const [satellites, setSatellites] = useState([]);
-            // Local state for 'loading' and 'search' remains here
             const [loading, setLoading] = useState(true);
             const [searchId, setSearchId] = useState("");
-
             const [searchResults, setSearchResults] = useState([]);
 
+            // Load from localStorage on mount, then fetch defaults
             useEffect(() => {
+                const saved = localStorage.getItem(HISTORY_KEY);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.length > 0) {
+                            setSatellites(parsed);
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (e) { /* ignore corrupt cache */ }
+                }
                 fetch(`${API_BASE}/satellites`)
                     .then(res => res.json())
                     .then(data => { setSatellites(data); setLoading(false); })
                     .catch(err => { console.error("Failed to fetch satellites:", err); setLoading(false); });
             }, []);
+
+            // Save to localStorage whenever satellites list changes
+            useEffect(() => {
+                if (satellites.length > 0) {
+                    localStorage.setItem(HISTORY_KEY, JSON.stringify(satellites));
+                }
+            }, [satellites]);
+
+            const clearHistory = () => {
+                localStorage.removeItem(HISTORY_KEY);
+                setSatellites([]);
+                setLoading(true);
+                fetch(`${API_BASE}/satellites`)
+                    .then(res => res.json())
+                    .then(data => { setSatellites(data); setLoading(false); })
+                    .catch(() => setLoading(false));
+            };
 
             const performSearch = () => {
                 if (!searchId) return;
@@ -1050,46 +1105,53 @@
                             <button className="cta-button" style={{ padding: '0 1rem', fontSize: '0.8rem' }} onClick={performSearch}>
                                 {t.calc_add}
                             </button>
+                        </div>
 
-                            {/* Search Results Dropdown */}
-                            {searchResults.length > 0 && (
-                                <div style={{
-                                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                                    background: '#0a0f18', border: '1px solid #333', borderRadius: '8px',
-                                    marginTop: '5px', maxHeight: '200px', overflowY: 'auto'
-                                }}>
-                                    {searchResults.map(res => (
-                                        <div key={res.norad_id}
-                                            onClick={() => addToDashboard(res.norad_id)}
-                                            style={{ padding: '0.8rem', borderBottom: '1px solid #222', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center hover:bg-white/10' }}>
-                                            <span style={{ color: 'white' }}>{res.name}</span>
-                                            <span style={{ color: '#666', fontSize: '0.8rem' }}>#{res.norad_id}</span>
-                                        </div>
-                                    ))}
-                                    <div style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.8rem', color: '#888', cursor: 'pointer' }} onClick={() => setSearchResults([])}>
-                                        Cancel
+                        {/* Clear History Button */}
+                        {satellites.length > 0 && (
+                            <button onClick={clearHistory} style={{
+                                background: 'transparent', border: '1px solid #333', color: '#666',
+                                padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer',
+                                fontSize: '0.75rem', alignSelf: 'flex-end'
+                            }}>
+                                🗑 {t.btn_clear}
+                            </button>
+                        )}
+
+                        {/* Search Results Dropdown */}
+                        {searchResults.length > 0 && (
+                            <div style={{
+                                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                                background: '#0a0f18', border: '1px solid #333', borderRadius: '8px',
+                                marginTop: '5px', maxHeight: '200px', overflowY: 'auto'
+                            }}>
+                                {searchResults.map(res => (
+                                    <div key={res.norad_id}
+                                        onClick={() => addToDashboard(res.norad_id)}
+                                        style={{ padding: '0.8rem', borderBottom: '1px solid #222', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center hover:bg-white/10' }}>
+                                        <span style={{ color: 'white' }}>{res.name}</span>
+                                        <span style={{ color: '#666', fontSize: '0.8rem' }}>#{res.norad_id}</span>
                                     </div>
+                                ))}
+                                <div style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.8rem', color: '#888', cursor: 'pointer' }} onClick={() => setSearchResults([])}>
+                                    Cancel
                                 </div>
-                            )}
-                        </div>
-
-                        <div className="dashboard-grid">
-                            {loading ? <div className="state-msg">{t.calc_init}</div> :
-                                satellites.map(sat => (
-                                    <SatelliteCard key={sat.norad_id} sat={sat} onClick={setSelectedSat} t={t} />
-                                ))
-                            }
-                        </div>
+                            </div>
+                        )}
                     </div>
 
+                    <div className="dashboard-grid">
+                        {loading ? <div className="state-msg">{t.calc_init}</div> :
+                            satellites.map(sat => (
+                                <SatelliteCard key={sat.norad_id} sat={sat} onClick={setSelectedSat} t={t} />
+                            ))
+                        }
+                    </div>
 
-
-                    {/* Detail Panel */}
                     <DetailPanel sat={selectedSat} t={t} onShowMap={() => showOnMap(selectedSat)} />
 
-                    {/* 3D Viz */}
                     <OrbitViz selectedSat={selectedSat} t={t} />
-                </div >
+                </div>
             );
         }
 

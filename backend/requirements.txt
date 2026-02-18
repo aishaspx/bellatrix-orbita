@@ -6,3 +6,5 @@ scikit-learn
 requests
 numpy
 python-multipart
+slowapi
+reportlab

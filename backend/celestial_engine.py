@@ -7,8 +7,33 @@ import datetime
 from datetime import timezone
 from typing import List, Optional
 from pydantic import BaseModel
+import json
+import os
+import time
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# --- TLE Cache (disk-based fallback) ---
+TLE_CACHE_FILE = os.path.join(os.path.dirname(__file__), "tle_cache.json")
+
+def _load_cache() -> dict:
+    if os.path.exists(TLE_CACHE_FILE):
+        try:
+            with open(TLE_CACHE_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def _save_cache(cache: dict):
+    try:
+        with open(TLE_CACHE_FILE, "w") as f:
+            json.dump(cache, f)
+    except Exception as e:
+        logger.warning(f"Could not save TLE cache: {e}")
+
 
 # --- Models ---
 from pydantic import BaseModel
@@ -144,25 +169,52 @@ def get_satellites():
 
 # --- Existing Endpoints (Keep functioning) ---
 
-# --- TLE Fetching Logic (unchanged) ---
+# --- TLE Fetching Logic with retry + cache ---
 def get_tle(norad_id):
-    url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=kEphemeris" # Use TLE format if needed, but Celestrak GP is good.
-    # Actually, simpler is standard TLE format for SGP4
+    """
+    Fetches TLE from CelesTrak with 3 retries and exponential backoff.
+    Falls back to disk cache if network is unavailable.
+    """
+    cache = _load_cache()
+    cache_key = str(norad_id)
     url_tle = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=tle"
-    
-    try:
-        response = requests.get(url_tle, timeout=10)
-        response.raise_for_status()
-        lines = response.text.strip().splitlines()
-        if len(lines) >= 3:
-            return lines[0].strip(), lines[1].strip(), lines[2].strip() # Name, Line1, Line2
-        elif len(lines) == 2: # Sometimes name is missing or it's just 2 lines
-             return "Unknown", lines[0].strip(), lines[1].strip()
-        else:
-            return None
-    except Exception as e:
-        print(f"Error fetching TLE: {e}")
-        return None
+
+    for attempt in range(3):
+        try:
+            response = requests.get(url_tle, timeout=10)
+            response.raise_for_status()
+            lines = response.text.strip().splitlines()
+            if len(lines) >= 3:
+                result = (lines[0].strip(), lines[1].strip(), lines[2].strip())
+            elif len(lines) == 2:
+                result = ("Unknown", lines[0].strip(), lines[1].strip())
+            else:
+                result = None
+
+            if result:
+                # Save to cache on success
+                cache[cache_key] = {"name": result[0], "line1": result[1], "line2": result[2]}
+                _save_cache(cache)
+                return result
+        except requests.exceptions.ConnectionError:
+            logger.warning(f"CelesTrak unreachable (attempt {attempt+1}/3). Trying cache...")
+            break  # No point retrying a connection error
+        except requests.exceptions.Timeout:
+            wait = 2 ** attempt
+            logger.warning(f"CelesTrak timeout (attempt {attempt+1}/3). Retrying in {wait}s...")
+            time.sleep(wait)
+        except Exception as e:
+            logger.error(f"TLE fetch error: {e}")
+            break
+
+    # Fallback to cache
+    if cache_key in cache:
+        logger.info(f"Using cached TLE for NORAD {norad_id}")
+        c = cache[cache_key]
+        return (c["name"], c["line1"], c["line2"])
+
+    return None
+
 
 # --- Orbit Propagation ---
 @router.get("/satellite/{norad_id}")
@@ -452,55 +504,41 @@ async def check_conjunction(id1: int, id2: int):
         "risk_level": risk_level
     }
 
-# --- Search Endpoint (Phase 14) ---
 @router.get("/search")
 async def search_satellites(q: str):
     """
     Search for satellites by Name or ID via CelesTrak.
     """
-    # Determine if q is ID or Name
     is_id = q.isdigit()
-    
-    # Use CelesTrak GP API with JSON format for easier parsing of metadata
     base_url = "https://celestrak.org/NORAD/elements/gp.php"
-    params = {
-        "FORMAT": "json"
-    }
-    
+    params = {"FORMAT": "json"}
     if is_id:
         params["CATNR"] = q
     else:
         params["NAME"] = q
-        
-    try:
-        # Request from CelesTrak
-        response = requests.get(base_url, params=params, timeout=10)
-        
-        if response.status_code != 200:
-             # If exact match fails, try partial text search logic if needed, 
-             # but CelesTrak usually handles partials well or returns empty.
-             return []
-             
-        data = response.json()
-        
-        # CelesTrak returns a list of objects
-        results = []
-        # Limit to top 5 results to avoid overwhelming UI
-        for item in data[:5]:
-            # Extract name and ID
-            # OBJECT_NAME and NORAD_CAT_ID are standard fields in GP JSON
-            name = item.get("OBJECT_NAME", "Unknown")
-            cat_id = item.get("NORAD_CAT_ID", "")
-            
-            if cat_id:
-                results.append({
-                    "name": name,
-                    "norad_id": cat_id,
-                    "type": item.get("OBJECT_TYPE", "PAYLOAD")
-                })
-                
-        return results
 
-    except Exception as e:
-        print(f"Search error: {e}")
-        return []
+    for attempt in range(3):
+        try:
+            response = requests.get(base_url, params=params, timeout=10)
+            if response.status_code != 200:
+                return []
+            data = response.json()
+            results = []
+            for item in data[:5]:
+                name = item.get("OBJECT_NAME", "Unknown")
+                cat_id = item.get("NORAD_CAT_ID", "")
+                if cat_id:
+                    results.append({"name": name, "norad_id": cat_id, "type": item.get("OBJECT_TYPE", "PAYLOAD")})
+            return results
+        except requests.exceptions.ConnectionError:
+            logger.warning(f"Search: CelesTrak unreachable (attempt {attempt+1}/3)")
+            break
+        except requests.exceptions.Timeout:
+            wait = 2 ** attempt
+            logger.warning(f"Search: timeout (attempt {attempt+1}/3), retrying in {wait}s")
+            time.sleep(wait)
+        except Exception as e:
+            logger.error(f"Search error: {e}")
+            break
+
+    return []
