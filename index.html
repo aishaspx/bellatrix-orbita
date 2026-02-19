@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bellatrix | Orbital Intelligence Platform</title>
+
+    <!-- Meta Tags -->
+    <meta name="description" content="AI-powered satellite risk monitoring and orbital analytics.">
+    <meta name="theme-color" content="#05070a">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Libraries (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const API_BASE = "/api";
+
+        // --- TRANSLATIONS ---
+        const TRANSLATIONS = {
+            en: {
+                nav_home: "Home", nav_calc: "Calculator", nav_guide: "Guide", nav_map: "Live Map", nav_forecast: "AI Forecast",
+                home_sub: "AI-powered orbital risk intelligence platform. Visualize complex satellite trajectories, analyze collision probabilities, and master the orbital mechanics of tomorrow.",
+                start_btn: "Start Analysis",
+                mission_title: "Orbital Integrity",
+                mission_txt: "Low Earth Orbit is becoming dangerously crowded. With over 27,000 tracked objects, the risk of Kessler Syndrome—a cascade of collisions—is real. Bellatrix provides the intelligence needed to navigate this new frontier safely.",
+                calc_add: "Add Satellite",
+                calc_placeholder: "NORAD ID or Name",
+                footer_data: "Data: NASA, ESA, SpaceX, CelesTrak, & NORAD APIs.",
+                about_title: "Orbital Mechanics",
+                guide_title: "User Manual",
+                guide_1_t: "1. Select a Satellite",
+                guide_1_d: "Search in the Calculator tab using NORAD ID (e.g., 25544) or name.",
+                guide_2_t: "2. View Telemetry",
+                guide_2_d: "Analyze inclination, period, and real-time altitude in the detail panel.",
+                guide_3_t: "3. Analyze Risk",
+                guide_3_d: "Monitor collision probabilities and AI stability forecasts.",
+                calc_init: "Initializing Uplink...",
+                calc_select: "Select a satellite to begin analysis",
+                detail_title: "Telemetry Analysis",
+                lbl_alt: "Altitude", lbl_vel: "Velocity", lbl_inc: "Inclination", lbl_per: "Period", lbl_apo: "Apogee", lbl_peri: "Perigee",
+                lbl_lat: "Latitude", lbl_lon: "Longitude",
+                leo_t: "LEO: The Cosmic Highway",
+                leo_d: "Low Earth Orbit (160-2000 km). Home to the ISS. High velocity (~7.8 km/s).",
+                meo_t: "MEO: Navigation Zone",
+                meo_d: "Medium Earth Orbit. Home to GPS constellations.",
+                geo_t: "GEO: Tracking Point",
+                geo_d: "Geostationary Orbit. Appears fixed relative to Earth.",
+                ks_t: "Kessler Syndrome",
+                ks_d: "A collision cascade that could create an impassable debris belt.",
+                stem_title: "Empowering Exploration",
+                stem_sub: "Bridging the gap between tracking data and orbital science.",
+                target_1_t: "Educators",
+                target_1_d: "Visualize Keplerian physics in dynamic 3D.",
+                target_2_t: "Researchers",
+                target_2_d: "Analyze risk and conjunction probability.",
+                target_3_t: "Enthusiasts",
+                target_3_d: "Track ISS and global mega-constellations.",
+                why_stem_t: "Science & Intelligence",
+                why_stem_d: "Unifying Physics, AI, and Big Data.",
+
+                // New Keys
+                f_title: "AI Intelligence Forecast",
+                f_risk_trend: "Satellite Risk Trend",
+                f_neural_summary: "Neural Forecast Summary",
+                f_stability: "Stability Index",
+                f_avg_alt: "Avg Altitude",
+                f_empty: "Select a satellite in Calculator to view AI trends",
+
+                m_title: "Global Ground Track",
+                m_tracking: "Tracking",
+                m_intel: "Intelligence Overlay",
+                m_obj: "Objects Tracked",
+                m_risk: "High Risk",
+                m_status: "Status",
+                m_status_update: "Last Update",
+                m_op: "Operational",
+                m_calc: "Calculating Path...",
+
+                s_nav: "Navigation",
+                s_intel: "Intelligence",
+                s_legal: "Legal & Data",
+                s_platform: "Autonomous Orbital Intelligence Platform",
+                s_terms: "API Terms",
+                s_policy: "Data Policy",
+                s_calc: "Calculator (Tracking)",
+                s_map: "World Map (Visualizer)",
+                s_forecast: "AI Forecast (Analytics)",
+                s_guide: "User Guide",
+                s_prop: "Orbital Propagation",
+                s_risk: "Risk Assessment",
+                s_ground: "Ground Track Analysis",
+                s_ready: "Sector Readiness",
+
+                err_title: "System Malfunction",
+                err_msg: "An unexpected error occurred in this module.",
+                err_btn: "Reboot System",
+                err_not_found: "Object not found.",
+                err_search_fail: "Search failed.",
+                err_details_fail: "Error retrieving satellite details.",
+
+                g_how: "How to Use Bellatrix",
+                g_step1_t: "1. Search & Select",
+                g_step1_d: "Go to the Calculator tab. Use the search bar to find satellites by NORAD ID (e.g., '25544' for ISS) or Name. Click 'Add' to track them.",
+                g_step2_t: "2. Analyze Risk",
+                g_step2_d: "Select a satellite from your dashboard. The 'Telemetry Analysis' panel shows real-time data. Look for the Risk Probability field. If it exceeds 1%, a Warning Alert will appear.",
+                g_step3_t: "3. Visualize",
+                g_step3_d: "Use the Map button in the detail panel to see the satellite's current position over Earth. The 3D view shows its orbital path relative to the planet.",
+                g_term: "Terminology",
+                g_per_d: "Time to complete one orbit (e.g., ISS takes ~92 mins).",
+                g_inc_d: "Angle of the orbit relative to the equator. 0° = Equatorial, 90° = Polar.",
+                g_apo_per_d: "The highest (Apogee) and lowest (Perigee) points of the orbit.",
+                g_ks_d: "A chain reaction of collisions destroying the orbital environment.",
+
+                det_warn: "COLLISION WARNING",
+                det_prob: "Prob",
+                det_dist: "Dist",
+                det_time: "Time",
+
+                g_copyright_title: "Copyright & Rights",
+                g_copyright_text: "© 2026 Bellatrix Orbita Project. All rights reserved. Data provided by NORAD, NASA, SpaceX and CelesTrak. This platform is for educational and research purposes. All orbital visualizations are generated in real-time based on public TLE data.",
+
+                btn_map: "Map",
+                btn_csv: "CSV",
+                btn_pdf: "PDF",
+                btn_clear: "Clear History"
+            },
+            ru: {
+                nav_home: "Главная", nav_calc: "Калькулятор", nav_guide: "Справка", nav_map: "Карта", nav_forecast: "AI Прогноз",
+                home_sub: "Платформа орбитальной разведки на базе ИИ. Визуализируйте траектории спутников, анализируйте вероятности столкновений и изучайте орбитальную механику будущего.",
+                start_btn: "Начать Анализ",
+                mission_title: "Орбитальная Целостность",
+                mission_txt: "Низкая околоземная орбита опасно перегружена. При наличии более 27 000 отслеживаемых объектов риск Синдрома Кесслера — каскада столкновений — вполне реален. Bellatrix предоставляет разведданные для безопасной навигации в этом новом фронтире.",
+                calc_add: "Добавить",
+                calc_placeholder: "NORAD ID или Имя",
+                footer_data: "Данные: NASA, ESA, SpaceX, CelesTrak и API NORAD.",
+                about_title: "Орбитальная Механика",
+                guide_title: "Руководство пользователя",
+                guide_1_t: "1. Выберите спутник",
+                guide_1_d: "Используйте поиск в Калькуляторе по NORAD ID (напр. 25544) или названию.",
+                guide_2_t: "2. Просмотр телеметрии",
+                guide_2_d: "Анализируйте наклонение, период и высоту в реальном времени на панели деталей.",
+                guide_3_t: "3. Анализ рисков",
+                guide_3_d: "Следите за вероятностью столкновения и прогнозами стабильности от ИИ.",
+                calc_init: "Инициализация связи...",
+                calc_select: "Выберите спутник для начала анализа",
+                detail_title: "Анализ телеметрии",
+                lbl_alt: "Высота", lbl_vel: "Скорость", lbl_inc: "Наклонение", lbl_per: "Период", lbl_apo: "Апогей", lbl_peri: "Перигей",
+                lbl_lat: "Широта", lbl_lon: "Долгота",
+                leo_t: "LEO: Космическое шоссе",
+                leo_d: "Низкая околоземная орбита (160-2000 км). Местоположение МКС. Высокая скорость (~7.8 км/с).",
+                meo_t: "MEO: Навигационная зона",
+                meo_d: "Средняя околоземная орбита. Здесь находятся группировки GPS.",
+                geo_t: "GEO: Точка слежения",
+                geo_d: "Геостационарная орбита. Кажется неподвижной относительно Земли.",
+                ks_t: "Синдром Кесслера",
+                ks_d: "Цепная реакция столкновений, способная создать непроходимый пояс обломков.",
+                stem_title: "Расширяя границы",
+                stem_sub: "Объединяем данные слежения и орбитальную науку.",
+                target_1_t: "Для преподавателей",
+                target_1_d: "Визуализируйте законы Кеплера в динамичном 3D.",
+                target_2_t: "Для ученых",
+                target_2_d: "Анализируйте риски и вероятности сближений.",
+                target_3_t: "Для энтузиастов",
+                target_3_d: "Следите за МКС и глобальными мега-группировками.",
+                why_stem_t: "Наука и интеллект",
+                why_stem_d: "Синтез физики, ИИ и больших данных.",
+
+                // New Keys
+                f_title: "Прогноз ИИ-аналитики",
+                f_risk_trend: "Тренд риска спутника",
+                f_neural_summary: "Нейронная сводка прогноза",
+                f_stability: "Индекс стабильности",
+                f_avg_alt: "Средняя высота",
+                f_empty: "Выберите спутник в Калькуляторе для просмотра трендов ИИ",
+
+                m_title: "Глобальная наземная трасса",
+                m_tracking: "Отслеживание",
+                m_intel: "Информационный слой",
+                m_obj: "Объектов отслежено",
+                m_risk: "Высокий риск",
+                m_status: "Статус",
+                m_status_update: "Обновлено",
+                m_op: "В работе",
+                m_calc: "Расчет траектории...",
+
+                s_nav: "Навигация",
+                s_intel: "Аналитика",
+                s_legal: "Данные и право",
+                s_platform: "Автономная платформа орбитальной разведки",
+                s_terms: "Условия API",
+                s_policy: "Политика данных",
+                s_calc: "Калькулятор (Мониторинг)",
+                s_map: "Карта мира (Визуализатор)",
+                s_forecast: "AI Прогноз (Аналитика)",
+                s_guide: "Справка",
+                s_prop: "Прогнозирование орбит",
+                s_risk: "Оценка рисков",
+                s_ground: "Анализ наземной трассы",
+                s_ready: "Готовность сектора",
+
+                err_title: "Сбой системы",
+                err_msg: "В этом модуле произошла неожиданная ошибка.",
+                err_btn: "Перезапуск системы",
+                err_not_found: "Объект не найден.",
+                err_search_fail: "Сбой поиска.",
+                err_details_fail: "Ошибка получения данных спутника.",
+
+                g_how: "Как пользоваться Bellatrix",
+                g_step1_t: "1. Поиск и выбор",
+                g_step1_d: "Перейдите во вкладку Калькулятор. Используйте поиск по NORAD ID (например, '25544' для МКС) или названию. Нажмите 'Добавить' для отслеживания.",
+                g_step2_t: "2. Анализ рисков",
+                g_step2_d: "Выберите спутник из списка. Панель 'Анализ телеметрии' показывает данные в реальном времени. Обратите внимание на поле 'Вероятность столкновения'. Если она выше 1%, появится предупреждение.",
+                g_step3_t: "3. Визуализация",
+                g_step3_d: "Нажмите кнопку 'Карта' в деталях, чтобы увидеть текущее положение. 3D-вид показывает орбитальный путь относительно планеты.",
+                g_term: "Терминология",
+                g_per_d: "Время полного оборота (например, МКС — около 92 минут).",
+                g_inc_d: "Угол орбиты относительно экватора. 0° — экваториальная, 90° — полярная.",
+                g_apo_per_d: "Самая высокая (апогей) и самая низкая (перигей) точки орбиты.",
+                g_ks_d: "Цепная реакция столкновений, разрушающая орбитальную среду.",
+
+                g_copyright_title: "Авторские права",
+                g_copyright_text: "© 2026 Проект Bellatrix Orbita. Все права защищены. Данные предоставлены NORAD, NASA, SpaceX и CelesTrak. Платформа предназначена для образовательных и исследовательских целей. Все орбитальные визуализации создаются в реальном времени на основе открытых данных TLE.",
+
+                det_warn: "ПРЕДУПРЕЖДЕНИЕ О СБЛИЖЕНИИ",
+                det_prob: "Вер-ть",
+                det_dist: "Дист",
+                det_time: "Время",
+
+                btn_map: "Карта",
+                btn_csv: "CSV",
+                btn_pdf: "PDF",
+                btn_clear: "Очистить историю"
+            }
+        };
+
+        // --- COMPONENTS ---
+
+        // Error Boundary to prevent "Black Screens" by catching render errors in sub-components
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error };
+            }
+
+            componentDidCatch(error, errorInfo) {
+                console.error("Uncaught error:", error, errorInfo);
+            }
+
+            render() {
+                // Pass current language to error boundary implicitly or via props if needed
+                // For simplicity, we'll use a default or window level lang if available
+                const lang = window.appLang || 'en';
+                const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+                if (this.state.hasError) {
+                    return (
+                        <div style={{ padding: '2rem', color: '#ff0055', textAlign: 'center', background: 'rgba(0,0,0,0.8)', margin: '2rem', borderRadius: '8px', border: '1px solid #ff0055' }}>
+                            <h2 style={{ fontFamily: 'Cinzel' }}>{t.err_title}</h2>
+                            <p>{t.err_msg}</p>
+                            <pre style={{ textAlign: 'left', background: '#111', padding: '1rem', overflow: 'auto', fontSize: '0.8rem', color: '#ffcccb' }}>
+                                {this.state.error && this.state.error.toString()}
+                            </pre>
+                            <button className="cta-button" onClick={() => window.location.reload()}>{t.err_btn}</button>
+                        </div>
+                    );
+                }
+
+                return this.props.children;
+            }
+        }
+
+        function BellatrixLogo() {
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                    <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="40" stroke="url(#grad1)" strokeWidth="4" />
+                        <ellipse cx="50" cy="50" rx="45" ry="15" transform="rotate(25 50 50)" stroke="url(#grad2)" strokeWidth="2" strokeOpacity="0.8" />
+                        <path d="M50 20L58 42L82 42L62 58L70 80L50 65L30 80L38 58L18 42L42 42L50 20Z" fill="white" />
+                        <defs>
+                            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop stopColor="#bc13fe" />
+                                <stop offset="1" stopColor="#05070a" />
+                            </linearGradient>
+                            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop stopColor="#4facfe" />
+                                <stop offset="1" stopColor="#00f2fe" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span style={{ fontFamily: 'Cinzel', fontSize: '1.5rem', fontWeight: '700', letterSpacing: '2px', background: 'linear-gradient(to right, #fff, #aaa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        BELLATRIX
+                    </span>
+                </div>
+            );
+        }
+
+        function StarBackground() {
+            const canvasRef = useRef(null);
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let width = window.innerWidth; let height = window.innerHeight;
+                canvas.width = width; canvas.height = height;
+                const stars = [];
+                for (let i = 0; i < 300; i++) stars.push({ x: Math.random() * width, y: Math.random() * height, size: Math.random() * 2, speed: Math.random() * 0.3, color: Math.random() > 0.8 ? '#bc13fe' : '#ffffff' });
+                function animate() {
+                    ctx.clearRect(0, 0, width, height);
+                    stars.forEach(star => {
+                        ctx.beginPath(); ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fillStyle = star.color; ctx.fill();
+                        star.y -= star.speed; if (star.y < 0) { star.y = height; star.x = Math.random() * width; }
+                    });
+                    requestAnimationFrame(animate);
+                }
+                animate();
+                window.addEventListener('resize', () => { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; });
+            }, []);
+            return <canvas id="star-canvas" ref={canvasRef} />;
+        }
+
+        function NavBar({ currentView, setView, lang, setLang }) {
+            const t = TRANSLATIONS[lang];
+            return (
+                <nav className="nav-bar">
+                    <div onClick={() => setView('home')}>
+                        <BellatrixLogo />
+                    </div>
+                    <div className="nav-right">
+                        <div className="nav-links">
+                            <div className={`nav-item ${currentView === 'home' ? 'active' : ''}`} onClick={() => setView('home')}>{t.nav_home}</div>
+                            <div className={`nav-item ${currentView === 'guide' ? 'active' : ''}`} onClick={() => setView('guide')}>{t.nav_guide}</div>
+                            <div className={`nav-item ${currentView === 'map' ? 'active' : ''}`} onClick={() => setView('map')}>{t.nav_map}</div>
+                            <div className={`nav-item ${currentView === 'forecast' ? 'active' : ''}`} onClick={() => setView('forecast')}>{t.nav_forecast}</div>
+                            <div className={`nav-item ${currentView === 'calc' ? 'active' : ''}`} onClick={() => setView('calc')}>{t.nav_calc}</div>
+                        </div>
+                        <div className="lang-switch">
+                            <div className={`lang-opt ${lang === 'en' ? 'active' : ''}`} onClick={() => setLang('en')}>EN</div>
+                            <div className={`lang-opt ${lang === 'ru' ? 'active' : ''}`} onClick={() => setLang('ru')}>RU</div>
+                        </div>
+                    </div>
+                </nav>
+            );
+        }
+
+        function HomeView({ setView, t }) {
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div className="section-container hero-section">
+                        <div style={{ transform: 'scale(1.5)', marginBottom: '1rem' }}><BellatrixLogo /></div>
+                        <p className="hero-subtitle">{t.home_sub}</p>
+                        <button className="cta-button" onClick={() => setView('calc')}>{t.start_btn}</button>
+
+                        <div style={{ marginTop: '4rem', maxWidth: '800px', textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '12px' }}>
+                            <h3 style={{ fontFamily: 'Cinzel', color: 'var(--primary-glow)' }}>{t.mission_title}</h3>
+                            <p style={{ color: '#ccc', lineHeight: '1.6' }}>{t.mission_txt}</p>
+                            <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '1rem 0' }} />
+                            <small style={{ color: '#666' }}>Project Bellatrix &copy; 2026. {t.footer_data}</small>
+                        </div>
+                    </div>
+
+                    <div className="section-container" style={{ background: 'linear-gradient(180deg, rgba(20,30,50,0.5) 0%, rgba(5,7,10,0) 100%)', marginTop: '2rem' }}>
+                        <h2 style={{ fontFamily: 'Cinzel', color: 'white' }}>{t.stem_title}</h2>
+                        <p style={{ color: '#aaa', marginBottom: '2rem' }}>{t.stem_sub}</p>
+
+                        <div className="info-grid">
+                            <div className="info-card" style={{ borderColor: '#00f3ff' }}>
+                                <h3 style={{ color: '#00f3ff' }}>🎓 {t.target_1_t}</h3>
+                                <p style={{ color: '#ccc' }}>{t.target_1_d}</p>
+                            </div>
+                            <div className="info-card" style={{ borderColor: '#bc13fe' }}>
+                                <h3 style={{ color: '#bc13fe' }}>🔬 {t.target_2_t}</h3>
+                                <p style={{ color: '#ccc' }}>{t.target_2_d}</p>
+                            </div>
+                            <div className="info-card" style={{ borderColor: '#ffaa00' }}>
+                                <h3 style={{ color: '#ffaa00' }}>🔭 {t.target_3_t}</h3>
+                                <p style={{ color: '#ccc' }}>{t.target_3_d}</p>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '2rem', padding: '1.5rem', border: '1px solid #444', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}>
+                            <h3 style={{ fontFamily: 'Cinzel', color: 'white' }}>⚛️ {t.why_stem_t}</h3>
+                            <p style={{ color: '#ccc', fontStyle: 'italic' }}>{t.why_stem_d}</p>
+                        </div>
+                    </div>
+
+                    <div className="section-container">
+                        <h2 style={{ fontFamily: 'Cinzel', color: 'white' }}>{t.about_title}</h2>
+                        <div className="info-grid">
+                            <div className="info-card"><h3>{t.leo_t}</h3><p style={{ color: '#aaa' }}>{t.leo_d}</p></div>
+                            <div className="info-card"><h3>{t.meo_t}</h3><p style={{ color: '#aaa' }}>{t.meo_d}</p></div>
+                            <div className="info-card"><h3>{t.geo_t}</h3><p style={{ color: '#aaa' }}>{t.geo_d}</p></div>
+                            <div className="info-card"><h3>{t.ks_t}</h3><p style={{ color: '#aaa' }}>{t.ks_d}</p></div>
+                        </div>
+                    </div>
+                </div >
+            );
+        }
+
+        function GuideView({ t }) {
+            return (
+                <div className="section-container" style={{ maxWidth: '800px' }}>
+                    <h2 style={{ fontFamily: 'Cinzel', color: 'white' }}>{t.guide_title}</h2>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h3 style={{ color: '#00f3ff', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>{t.g_how}</h3>
+                        <div className="guide-step">
+                            <h4>{t.g_step1_t}</h4>
+                            <p style={{ color: '#ccc' }}>{t.g_step1_d}</p>
+                        </div>
+                        <div className="guide-step">
+                            <h4>{t.g_step2_t}</h4>
+                            <p style={{ color: '#ccc' }}>{t.g_step2_d}</p>
+                        </div>
+                        <div className="guide-step">
+                            <h4>{t.g_step3_t}</h4>
+                            <p style={{ color: '#ccc' }}>{t.g_step3_d}</p>
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h3 style={{ color: '#bc13fe', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>{t.g_term}</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                                <h5 style={{ color: '#fff' }}>{t.lbl_per}</h5>
+                                <p style={{ fontSize: '0.9rem', color: '#aaa' }}>{t.g_per_d}</p>
+                            </div>
+                            <div>
+                                <h5 style={{ color: '#fff' }}>{t.lbl_inc}</h5>
+                                <p style={{ fontSize: '0.9rem', color: '#aaa' }}>{t.g_inc_d}</p>
+                            </div>
+                            <div>
+                                <h5 style={{ color: '#fff' }}>{t.lbl_apo} / {t.lbl_peri}</h5>
+                                <p style={{ fontSize: '0.9rem', color: '#aaa' }}>{t.g_apo_per_d}</p>
+                            </div>
+                            <div>
+                                <h5 style={{ color: '#fff' }}>{t.ks_t}</h5>
+                                <p style={{ fontSize: '0.9rem', color: '#aaa' }}>{t.g_ks_d}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: '1px solid #222', color: '#555', fontSize: '0.8rem' }}>
+                        <h4 style={{ color: '#888', marginBottom: '0.5rem' }}>{t.g_copyright_title}</h4>
+                        <p>{t.g_copyright_text}</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function SatelliteCard({ sat, onClick, t }) {
+            // Normalize risk level to Title Case for CSS consistency
+            const riskClass = sat.risk_level
+                ? sat.risk_level.charAt(0).toUpperCase() + sat.risk_level.slice(1).toLowerCase()
+                : 'Safe';
+
+            // Risk Badge Color Map
+            const riskColors = {
+                'Safe': '#00ff88',
+                'Low': '#00f3ff',
+                'Medium': '#ffaa00',
+                'High': '#ff0055'
+            };
+            const badgeColor = riskColors[riskClass] || '#00ff88';
+
+            return (
+                <div className={`sat-card risk-${riskClass}`} onClick={() => onClick(sat)} style={{ borderLeft: `4px solid ${badgeColor}` }}>
+                    <div className="card-header">
+                        <span className="sat-name">{sat.name}</span>
+                        <span className="sat-type" style={{ backgroundColor: badgeColor, color: '#000', fontWeight: 'bold' }}>{riskClass.toUpperCase()}</span>
+                    </div>
+                    <div className="card-metrics">
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <span className="sat-type">{sat.orbit_type}</span>
+                            <span>{sat.altitude_km} km</span>
+                            <span style={{ fontSize: '0.7rem', color: '#888', marginLeft: 'auto' }}>{sat.data_source}</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function DetailPanel({ sat, t, onShowMap }) {
+            if (!sat) return <div className="detail-panel" style={{ justifyContent: 'center', alignItems: 'center', opacity: 0.5 }}><h3>{t.calc_select}</h3></div>;
+
+            // Risk Warning Logic
+            const showWarning = sat.collision_probability > 1.0;
+            const warningColor = '#ff0055';
+
+            return (
+                <div className="detail-panel">
+                    <div className="detail-header">
+                        {t.detail_title}: {sat.name}
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                            {/* Show on Map Button */}
+                            <button onClick={onShowMap} style={{
+                                background: 'transparent',
+                                border: '1px solid #00f3ff', color: '#00f3ff',
+                                padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'
+                            }}>
+                                🗺️ {t.btn_map}
+                            </button>
+                            {/* CSV Export */}
+                            <a href={`${API_BASE}/export/csv/${sat.norad_id}`} download style={{
+                                background: 'transparent',
+                                border: '1px solid #00ff88', color: '#00ff88',
+                                padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem',
+                                textDecoration: 'none', display: 'inline-flex', alignItems: 'center'
+                            }}>
+                                📊 {t.btn_csv}
+                            </a>
+                            {/* PDF Export */}
+                            <a href={`${API_BASE}/export/pdf/${sat.norad_id}`} download style={{
+                                background: 'transparent',
+                                border: '1px solid #bc13fe', color: '#bc13fe',
+                                padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem',
+                                textDecoration: 'none', display: 'inline-flex', alignItems: 'center'
+                            }}>
+                                📄 {t.btn_pdf}
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Collision Alert Box */}
+                    {showWarning && (
+                        <div style={{
+                            background: 'rgba(255, 0, 85, 0.15)',
+                            border: `1px solid ${warningColor}`,
+                            padding: '1rem',
+                            borderRadius: '8px',
+                            marginBottom: '1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: warningColor, fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                <span>⚠</span> <span>{t.det_warn}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#ffcccb' }}>
+                                <span>{t.det_prob}: {(sat.collision_probability || 0).toFixed(1)}%</span>
+                                <span>{t.det_dist}: {sat.close_approach_dist || '?'} km</span>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#aaa' }}>{t.det_time}: {sat.close_approach_time}</div>
+                        </div>
+                    )}
+
+                    <div className="detail-grid">
+                        <div className="detail-item"><label>{t.lbl_alt}</label><value>{sat.altitude_km} km</value></div>
+                        <div className="detail-item"><label>{t.lbl_vel}</label><value>{sat.velocity_kms} km/s</value></div>
+                        <div className="detail-item"><label>{t.lbl_inc}</label><value>{sat.inclination_deg}°</value></div>
+                        <div className="detail-item"><label>{t.lbl_per}</label><value>{sat.period_min} min</value></div>
+                        <div className="detail-item"><label>{t.lbl_lat}</label><value>{sat.latitude ? sat.latitude : '--'}°</value></div>
+                        <div className="detail-item"><label>{t.lbl_lon}</label><value>{sat.longitude ? sat.longitude : '--'}°</value></div>
+                        <div className="detail-item" style={{ border: '1px solid #333', background: 'rgba(255,100,0,0.1)' }}>
+                            <label>Risk Probability</label>
+                            <value style={{ color: sat.collision_probability > 0 ? '#ffaa00' : '#00ff88' }}>
+                                {sat.collision_probability}%
+                            </value>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        function OrbitViz({ selectedSat }) {
+            const mountRef = useRef(null);
+            const sceneRef = useRef(null);
+            const earthRef = useRef(null);
+            const satMeshRef = useRef(null);
+            const curveRef = useRef(null);
+            const progressRef = useRef(0); // 0 to 1 for animation
+
+            useEffect(() => {
+                if (!mountRef.current) return;
+
+                // Init Scene
+                const scene = new THREE.Scene();
+                sceneRef.current = scene;
+
+                const camera = new THREE.PerspectiveCamera(50, mountRef.current.clientWidth / mountRef.current.clientHeight, 0.1, 10000);
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                mountRef.current.innerHTML = '';
+                mountRef.current.appendChild(renderer.domElement);
+
+                // --- EARTH ---
+                const earthGroup = new THREE.Group();
+                scene.add(earthGroup);
+                earthRef.current = earthGroup;
+
+                // 1. Ocean Base (Solid Blue)
+                const geometry = new THREE.SphereGeometry(5, 64, 64);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x0f1e3d,
+                    emissive: 0x051020,
+                    specular: 0x111111,
+                    shininess: 25,
+                    flatShading: false
+                });
+                const earth = new THREE.Mesh(geometry, material);
+                earthGroup.add(earth);
+
+                // 2. Wireframe Overlay
+                const wireGeo = new THREE.WireframeGeometry(geometry);
+                const wireMat = new THREE.LineBasicMaterial({ color: 0x3a5a8c, transparent: true, opacity: 0.1 });
+                const wireglobe = new THREE.LineSegments(wireGeo, wireMat);
+                earthGroup.add(wireglobe);
+
+                // 3. Atmosphere Glow
+                const atmoGeo = new THREE.SphereGeometry(5.2, 64, 64);
+                const atmoMat = new THREE.MeshPhongMaterial({
+                    color: 0x4facfe,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.BackSide,
+                    blending: THREE.AdditiveBlending
+                });
+                const atmosphere = new THREE.Mesh(atmoGeo, atmoMat);
+                scene.add(atmosphere);
+
+                // --- SATELLITE MARKER ---
+                const satGroup = new THREE.Group();
+                // Body
+                const bodyGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.3, metalness: 0.8 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                satGroup.add(body);
+                // Panels
+                const panelGeo = new THREE.BoxGeometry(1.5, 0.05, 0.5);
+                const panelMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5, metalness: 0.5 });
+                const panel1 = new THREE.Mesh(panelGeo, panelMat);
+                const panel2 = new THREE.Mesh(panelGeo, panelMat);
+                panel2.rotation.y = Math.PI / 2;
+                satGroup.add(panel1);
+                satGroup.add(panel2);
+
+                satGroup.visible = false;
+                scene.add(satGroup);
+                satMeshRef.current = satGroup;
+
+                // Lighting
+                const sunLight = new THREE.DirectionalLight(0xffffff, 2);
+                sunLight.position.set(20, 10, 10);
+                scene.add(sunLight);
+                const ambientLight = new THREE.AmbientLight(0x404040);
+                scene.add(ambientLight);
+
+                camera.position.z = 18;
+
+                // Animation Loop
+                let reqId;
+                const animate = () => {
+                    reqId = requestAnimationFrame(animate);
+
+                    // Earth Rotation
+                    if (earthRef.current) earthRef.current.rotation.y += 0.0005;
+
+                    // Satellite Movement along path
+                    if (curveRef.current && satMeshRef.current && satMeshRef.current.visible) {
+                        progressRef.current += 0.0005; // Speed factor
+                        if (progressRef.current > 1) progressRef.current = 0;
+
+                        const point = curveRef.current.getPoint(progressRef.current);
+                        satMeshRef.current.position.copy(point);
+                        satMeshRef.current.lookAt(0, 0, 0);
+                    }
+
+                    if (renderer && scene && camera) {
+                        renderer.render(scene, camera);
+                    }
+                };
+                animate();
+
+                const handleResize = () => { if (!mountRef.current) return; renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight); camera.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight; camera.updateProjectionMatrix(); };
+                window.addEventListener('resize', handleResize);
+
+                // Cleanup to prevent WebGL context loss and crashes
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    cancelAnimationFrame(reqId);
+                    if (mountRef.current) mountRef.current.innerHTML = '';
+                    renderer.dispose();
+                };
+            }, []);
+
+            // Visual Trajectory Logic
+            useEffect(() => {
+                if (!selectedSat || !sceneRef.current) return;
+
+                // Clean old
+                const oldLine = sceneRef.current.getObjectByName("trajectoryLine");
+                if (oldLine) sceneRef.current.remove(oldLine);
+                if (satMeshRef.current) satMeshRef.current.visible = false;
+                curveRef.current = null;
+                progressRef.current = 0;
+
+                // Fetch new trajectory
+                fetch(`${API_BASE}/propagate/${selectedSat.norad_id}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.trajectory && data.trajectory.length > 0) {
+                            const points = data.trajectory.map(p => {
+                                const scale = 5 / 6371;
+                                return new THREE.Vector3(p.x * scale, p.y * scale, p.z * scale);
+                            });
+
+                            // Close loop for continuous animation if it's a full orbit? 
+                            // Propagate endpoint gives 90 mins (approx 1 orbit). 
+                            // Let's assume it's an open curve for now.
+
+                            const curve = new THREE.CatmullRomCurve3(points);
+                            curveRef.current = curve;
+
+                            // Using Points for a clearly visible "dotted" line in 3D
+                            const pGeometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(200));
+                            const pMaterial = new THREE.PointsMaterial({
+                                color: 0x00f3ff,
+                                size: 0.15,
+                                transparent: true,
+                                opacity: 0.7,
+                                sizeAttenuation: true
+                            });
+                            const pointsCloud = new THREE.Points(pGeometry, pMaterial);
+                            pointsCloud.name = "trajectoryLine";
+                            sceneRef.current.add(pointsCloud);
+
+                            if (satMeshRef.current) {
+                                satMeshRef.current.visible = true;
+                            }
+                        }
+                    })
+                    .catch(err => console.error("Error fetching path:", err));
+
+            }, [selectedSat]);
+
+            return <div className="viz-wrapper"><div className="viz-container"><div ref={mountRef} style={{ width: '100%', height: '100%' }}></div></div></div>;
+        }
+
+        function ForecastView({ t, selectedSat }) {
+            const [analytics, setAnalytics] = useState(null);
+            const [globalStats, setGlobalStats] = useState(null);
+
+            useEffect(() => {
+                fetch(`${API_BASE}/stats`)
+                    .then(res => res.json())
+                    .then(setGlobalStats)
+                    .catch(err => console.error("Stats fetch failed:", err));
+            }, []);
+
+            useEffect(() => {
+                if (!selectedSat) return;
+                fetch(`${API_BASE}/analytics/${selectedSat.norad_id}`)
+                    .then(res => res.json())
+                    .then(setAnalytics)
+                    .catch(err => console.error("Analytics fetch failed:", err));
+            }, [selectedSat]);
+
+            return (
+                <div className="section-container" style={{ maxWidth: '1100px' }}>
+                    <h2 style={{ fontFamily: 'Cinzel', color: 'white', marginBottom: '2rem' }}>{t.f_title}</h2>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+
+                        {/* Selected Sat Trend */}
+                        <div className="info-card">
+                            <h3>{t.f_risk_trend} {analytics && `: ${selectedSat.name}`}</h3>
+                            {analytics ? (
+                                <React.Fragment>
+                                    <div style={{ height: '200px', display: 'flex', alignItems: 'end', gap: '8px', padding: '1rem 0', borderBottom: '1px solid #333' }}>
+                                        {analytics.trend_data.map((p, i) => (
+                                            <div key={i} style={{
+                                                flex: 1,
+                                                background: `linear-gradient(to top, rgba(0, 243, 255, 0.4), var(--primary-glow))`,
+                                                height: `${p.risk_score}%`,
+                                                borderRadius: '4px 4px 0 0',
+                                                position: 'relative'
+                                            }}>
+                                                <div style={{ position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.6rem', color: '#00f3ff' }}>
+                                                    {p.risk_score}%
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', color: '#666', fontSize: '0.7rem' }}>
+                                        <span>7 Days Ago</span>
+                                        <span>Today</span>
+                                    </div>
+                                    <div style={{ marginTop: '2rem', background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '12px', border: '1px solid #333' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#bc13fe' }}>{t.f_neural_summary}</h4>
+                                        <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', lineHeight: 1.6 }}>{analytics.forecast_summary}</p>
+                                        <div style={{ display: 'flex', gap: '2rem', marginTop: '1.5rem' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.7rem', color: '#666', textTransform: 'uppercase' }}>{t.f_stability}</div>
+                                                <div style={{ fontSize: '1.2rem', color: '#00ff88', fontWeight: 'bold' }}>{analytics.stability_index}%</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.7rem', color: '#666', textTransform: 'uppercase' }}>{t.f_avg_alt}</div>
+                                                <div style={{ fontSize: '1.2rem', color: '#fff' }}>{analytics.avg_altitude} km</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </React.Fragment>
+                            ) : (
+                                <div style={{ height: '300px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#444' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+                                    <p>{t.f_empty}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Global Stats */}
+                        <div className="info-card">
+                            <h3>{t.s_ready}</h3>
+                            {globalStats ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px' }}>
+                                        <div style={{ color: '#aaa', fontSize: '0.8rem' }}>{t.m_obj}</div>
+                                        <div style={{ fontSize: '1.8rem', color: '#fff', fontFamily: 'Cinzel' }}>{globalStats.total_tracked.toLocaleString()}</div>
+                                    </div>
+                                    <div style={{ background: 'rgba(255,0,85,0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #ff0055' }}>
+                                        <div style={{ color: '#ffb3c5', fontSize: '0.8rem' }}>{t.m_risk} (24h)</div>
+                                        <div style={{ fontSize: '1.8rem', color: '#ff0055', fontFamily: 'Cinzel' }}>{globalStats.high_risk_count}</div>
+                                    </div>
+                                    <div style={{ background: 'rgba(0,255,136,0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #00ff88' }}>
+                                        <div style={{ color: '#b3ffdd', fontSize: '0.8rem' }}>{t.m_status}</div>
+                                        <div style={{ fontSize: '1.1rem', color: '#00ff88' }}>● {globalStats.system_health}</div>
+                                    </div>
+                                    <p style={{ fontSize: '0.7rem', color: '#444', marginTop: '1rem' }}>{t.m_status_update}: {new Date(globalStats.last_update).toLocaleTimeString()}</p>
+                                </div>
+                            ) : <div>Loading Stats...</div>}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function WorldMapView({ t, selectedSat }) {
+            const [groundTrack, setGroundTrack] = useState([]);
+            const [loading, setLoading] = useState(false);
+
+            useEffect(() => {
+                if (!selectedSat) return;
+                setLoading(true);
+                // Fetch 180 minutes of propagation for ground track (approx 2 orbits)
+                fetch(`${API_BASE}/propagate/${selectedSat.norad_id}?minutes=180&steps=200`)
+                    .then(res => res.json())
+                    .then(data => {
+                        setGroundTrack(data.trajectory || []);
+                        setLoading(false);
+                    })
+                    .catch(err => {
+                        console.error("Map propagation failed:", err);
+                        setLoading(false);
+                    });
+            }, [selectedSat]);
+
+            const getPos = (lat, lon) => {
+                const x = ((lon + 180) / 360) * 100;
+                const y = ((90 - lat) / 180) * 100;
+                return { x, y }; // Return numbers for SVG viewBox
+            };
+
+            let markerStyle = {};
+            let hasSat = false;
+
+            if (selectedSat && selectedSat.latitude != null && selectedSat.longitude != null) {
+                hasSat = true;
+                const pos = getPos(selectedSat.latitude, selectedSat.longitude);
+                markerStyle = {
+                    position: 'absolute',
+                    left: `${pos.x}%`,
+                    top: `${pos.y}%`,
+                    width: '16px', height: '16px',
+                    background: selectedSat.risk_level === 'High' ? '#ff0055' : '#00f3ff',
+                    borderRadius: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    boxShadow: `0 0 20px ${selectedSat.risk_level === 'High' ? '#ff0055' : '#00f3ff'}`,
+                    border: '2px solid white',
+                    animation: 'pulse 2s infinite',
+                    zIndex: 20
+                };
+            }
+
+            return (
+                <div className="section-container" style={{ maxWidth: '1200px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h2 style={{ fontFamily: 'Cinzel', color: 'white', margin: 0 }}>{t.m_title}</h2>
+                        {selectedSat && <div style={{ color: '#00f3ff', fontSize: '0.9rem' }}>{t.m_tracking}: {selectedSat.name} (#{selectedSat.norad_id})</div>}
+                    </div>
+
+                    <div style={{
+                        width: '100%', height: '600px', background: '#05070a',
+                        border: '1px solid #333', borderRadius: '12px',
+                        position: 'relative', overflow: 'hidden'
+                    }}>
+                        {/* Map Background Layer - Only this is filtered */}
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            backgroundImage: 'url("https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg")',
+                            backgroundSize: '100% 100%',
+                            backgroundPosition: 'center',
+                            filter: 'invert(1) hue-rotate(180deg) brightness(0.6)'
+                        }}></div>
+
+                        <style>{`
+                            @keyframes pulse {
+                                0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                                50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.5; }
+                                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                            }
+                        `}</style>
+
+                        {/* Ground Track Path - High Visibility Layer */}
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 15 }}>
+                            {groundTrack.length > 1 && (
+                                <path
+                                    d={groundTrack.reduce((acc, p, i) => {
+                                        const pos = getPos(p.lat, p.lon);
+                                        // Handle wrap-around discontinuities
+                                        if (i > 0) {
+                                            const prevP = groundTrack[i - 1];
+                                            if (Math.abs(p.lon - prevP.lon) > 180) {
+                                                return acc + ` M ${pos.x} ${pos.y}`;
+                                            }
+                                        }
+                                        return acc + (i === 0 ? `M ${pos.x} ${pos.y}` : ` L ${pos.x} ${pos.y}`);
+                                    }, "")}
+                                    fill="none"
+                                    stroke="#00ffff"
+                                    strokeWidth="0.8"
+                                    strokeDasharray="1.5,1.5"
+                                />
+                            )}
+                        </svg>
+
+                        {hasSat && (
+                            <React.Fragment>
+                                <div style={markerStyle}></div>
+                                <div style={{
+                                    position: 'absolute',
+                                    left: markerStyle.left,
+                                    top: `calc(${markerStyle.top} + 20px)`,
+                                    transform: 'translateX(-50%)',
+                                    background: 'rgba(0,0,0,0.9)',
+                                    padding: '5px 12px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #444',
+                                    whiteSpace: 'nowrap',
+                                    zIndex: 10,
+                                    fontSize: '0.8rem',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+                                }}>
+                                    <div style={{ color: '#fff', fontWeight: 'bold' }}>{selectedSat.name}</div>
+                                    <div style={{ color: '#00f3ff' }}>{selectedSat.latitude.toFixed(2)}°, {selectedSat.longitude.toFixed(2)}°</div>
+                                </div>
+                            </React.Fragment>
+                        )}
+
+                        <div style={{ position: 'absolute', bottom: '20px', left: '20px', background: 'rgba(0,0,0,0.85)', padding: '1rem', borderRadius: '12px', border: '1px solid #333' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: '#00f3ff', fontFamily: 'Cinzel' }}>{t.m_intel}</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem', fontSize: '0.8rem' }}>
+                                <span style={{ color: '#aaa' }}>{t.m_obj}:</span> <span style={{ color: '#fff' }}>27,432</span>
+                                <span style={{ color: '#aaa' }}>{t.m_risk}:</span> <span style={{ color: '#ff0055' }}>142</span>
+                                <span style={{ color: '#aaa' }}>{t.m_status}:</span> <span style={{ color: '#00ff88' }}>{t.m_op}</span>
+                            </div>
+                        </div>
+
+                        {loading && <div style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(0,0,0,0.7)', padding: '5px 15px', borderRadius: '20px', color: '#00f3ff', fontSize: '0.8rem' }}>{t.m_calc}</div>}
+                    </div>
+                </div>
+            )
+        }
+
+        const HISTORY_KEY = "bellatrix_sat_history";
+
+        function CalculatorView({ t, selectedSat, setSelectedSat, showOnMap }) {
+            const [satellites, setSatellites] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [searchId, setSearchId] = useState("");
+            const [searchResults, setSearchResults] = useState([]);
+
+            // Load from localStorage on mount, then fetch defaults
+            useEffect(() => {
+                const saved = localStorage.getItem(HISTORY_KEY);
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.length > 0) {
+                            setSatellites(parsed);
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (e) { /* ignore corrupt cache */ }
+                }
+                fetch(`${API_BASE}/satellites`)
+                    .then(res => res.json())
+                    .then(data => { setSatellites(data); setLoading(false); })
+                    .catch(err => { console.error("Failed to fetch satellites:", err); setLoading(false); });
+            }, []);
+
+            // Save to localStorage whenever satellites list changes
+            useEffect(() => {
+                if (satellites.length > 0) {
+                    localStorage.setItem(HISTORY_KEY, JSON.stringify(satellites));
+                }
+            }, [satellites]);
+
+            const clearHistory = () => {
+                localStorage.removeItem(HISTORY_KEY);
+                setSatellites([]);
+                setLoading(true);
+                fetch(`${API_BASE}/satellites`)
+                    .then(res => res.json())
+                    .then(data => { setSatellites(data); setLoading(false); })
+                    .catch(() => setLoading(false));
+            };
+
+            const performSearch = () => {
+                if (!searchId) return;
+                setLoading(true);
+                setSearchResults([]); // Clear previous
+
+                // New Search Logic
+                fetch(`${API_BASE}/search?q=${searchId}`)
+                    .then(res => res.json())
+                    .then(results => {
+                        setLoading(false);
+                        if (results.length === 0) {
+                            alert(t.err_not_found);
+                        } else if (results.length === 1) {
+                            // Perfect match, add directly
+                            addToDashboard(results[0].norad_id);
+                        } else {
+                            // Multiple matches, show list
+                            setSearchResults(results);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        setLoading(false);
+                        alert(t.err_search_fail);
+                    });
+            };
+
+            const addToDashboard = (id) => {
+                setLoading(true);
+                setSearchResults([]); // Hide list
+                fetch(`${API_BASE}/satellite/${id}/details`)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Not Found");
+                        return res.json();
+                    })
+                    .then(newSat => {
+                        // Check if already exists
+                        if (!satellites.find(s => s.norad_id === newSat.norad_id)) {
+                            setSatellites(prev => [...prev, newSat]);
+                        }
+                        setSelectedSat(newSat); // This updates App state
+                        setSearchId("");
+                        setLoading(false);
+                    })
+                    .catch(err => {
+                        alert(t.err_details_fail);
+                        setLoading(false);
+                    });
+            };
+
+            return (
+                <div className="calculator-layout">
+                    {/* Top Row: Search & List */}
+                    <div style={{ gridArea: 'list', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: '0', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+                            <input
+                                type="text"
+                                placeholder={t.calc_placeholder}
+                                value={searchId}
+                                onChange={(e) => setSearchId(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && performSearch()}
+                                style={{
+                                    flex: 1, padding: '0.8rem', background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid var(--card-border)', color: 'white', borderRadius: '8px'
+                                }}
+                            />
+                            <button className="cta-button" style={{ padding: '0 1rem', fontSize: '0.8rem' }} onClick={performSearch}>
+                                {t.calc_add}
+                            </button>
+                        </div>
+
+                        {/* Clear History Button */}
+                        {satellites.length > 0 && (
+                            <button onClick={clearHistory} style={{
+                                background: 'transparent', border: '1px solid #333', color: '#666',
+                                padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer',
+                                fontSize: '0.75rem', alignSelf: 'flex-end'
+                            }}>
+                                🗑 {t.btn_clear}
+                            </button>
+                        )}
+
+                        {/* Search Results Dropdown */}
+                        {searchResults.length > 0 && (
+                            <div style={{
+                                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                                background: '#0a0f18', border: '1px solid #333', borderRadius: '8px',
+                                marginTop: '5px', maxHeight: '200px', overflowY: 'auto'
+                            }}>
+                                {searchResults.map(res => (
+                                    <div key={res.norad_id}
+                                        onClick={() => addToDashboard(res.norad_id)}
+                                        style={{ padding: '0.8rem', borderBottom: '1px solid #222', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center hover:bg-white/10' }}>
+                                        <span style={{ color: 'white' }}>{res.name}</span>
+                                        <span style={{ color: '#666', fontSize: '0.8rem' }}>#{res.norad_id}</span>
+                                    </div>
+                                ))}
+                                <div style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.8rem', color: '#888', cursor: 'pointer' }} onClick={() => setSearchResults([])}>
+                                    Cancel
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="dashboard-grid">
+                        {loading ? <div className="state-msg">{t.calc_init}</div> :
+                            satellites.map(sat => (
+                                <SatelliteCard key={sat.norad_id} sat={sat} onClick={setSelectedSat} t={t} />
+                            ))
+                        }
+                    </div>
+
+                    <DetailPanel sat={selectedSat} t={t} onShowMap={() => showOnMap(selectedSat)} />
+
+                    <OrbitViz selectedSat={selectedSat} t={t} />
+                </div>
+            );
+        }
+
+        // --- MAIN APP ---
+        function Sitemap({ t }) {
+            return (
+                <div style={{ padding: '4rem 2rem', background: '#05070a', borderTop: '1px solid #111', color: '#666', fontSize: '0.8rem' }}>
+                    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem' }}>
+                        <div>
+                            <h4 style={{ color: '#fff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>{t.s_nav}</h4>
+                            <ul style={{ listStyle: 'none', padding: 0 }}>
+                                <li>{t.nav_home}</li>
+                                <li>{t.s_calc}</li>
+                                <li>{t.s_map}</li>
+                                <li>{t.s_forecast}</li>
+                                <li>{t.s_guide}</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style={{ color: '#fff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>{t.s_intel}</h4>
+                            <ul style={{ listStyle: 'none', padding: 0 }}>
+                                <li>{t.s_prop}</li>
+                                <li>{t.s_risk}</li>
+                                <li>{t.s_ground}</li>
+                                <li>{t.s_ready}</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style={{ color: '#fff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>{t.s_legal}</h4>
+                            <ul style={{ listStyle: 'none', padding: 0 }}>
+                                <li>{t.s_terms}</li>
+                                <li>{t.s_policy}</li>
+                                <li>NORAD Catalog</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style={{ color: '#00f3ff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>BELLATRIX V4.0</h4>
+                            <p>{t.s_platform}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [currentView, setView] = useState('home');
+            const [lang, setLang] = useState('en');
+            const [selectedSat, setSelectedSat] = useState(null);
+
+            // Handler to go to map with a specific satellite
+            const showOnMap = (sat) => {
+                setSelectedSat(sat);
+                setView('map');
+            };
+
+            return (
+                <React.Fragment>
+                    <StarBackground />
+                    <NavBar currentView={currentView} setView={setView} lang={lang} setLang={setLang} />
+                    {currentView === 'home' && <HomeView setView={setView} t={TRANSLATIONS[lang]} />}
+                    {currentView === 'guide' && <ErrorBoundary><GuideView t={TRANSLATIONS[lang]} /></ErrorBoundary>}
+                    {currentView === 'map' && <ErrorBoundary><WorldMapView t={TRANSLATIONS[lang]} selectedSat={selectedSat} /></ErrorBoundary>}
+                    {currentView === 'forecast' && <ErrorBoundary><ForecastView t={TRANSLATIONS[lang]} selectedSat={selectedSat} /></ErrorBoundary>}
+                    {currentView === 'calc' && <ErrorBoundary><CalculatorView t={TRANSLATIONS[lang]} selectedSat={selectedSat} setSelectedSat={setSelectedSat} showOnMap={showOnMap} /></ErrorBoundary>}
+                    <Sitemap t={TRANSLATIONS[lang]} />
+                </React.Fragment>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
