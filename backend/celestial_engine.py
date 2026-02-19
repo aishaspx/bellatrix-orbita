@@ -200,17 +200,7 @@ def get_dashboard_data():
             data_source="NOAA/NASA"
         )
     ]
-            velocity_kms=3.07,
-            risk_level="Safe",
-            description="Geostationary Operational Environmental Satellite.",
-            orbit_type="GEO",
-            period_min=1436.1,
-            inclination_deg=0.04,
-            apogee_km=35790.0,
-            perigee_km=35780.0,
-            data_source="NOAA/NASA"
-        )
-    ]
+
 
 @router.get("/satellites", response_model=List[SatelliteSummary])
 def get_satellites():
