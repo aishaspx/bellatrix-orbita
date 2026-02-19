@@ -12,17 +12,33 @@ import logging
 
 import os
 import sys
-sys.path.append(os.path.dirname(__file__))
+import json
+import time
+import logging
+import requests
+import datetime
+import numpy as np
+from datetime import timezone
+from typing import List, Optional
+from pydantic import BaseModel
 
-from celestial_engine import router as celestial_router
-import analytics_engine
+# --- Vercel Compatibility ---
+IS_VERCEL = os.environ.get("VERCEL") == "1"
+TLE_CACHE_FILE = "/tmp/tle_cache.json" if IS_VERCEL else os.path.join(os.path.dirname(__file__), "tle_cache.json")
 
 # --- Logging ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 # --- Rate Limiter ---
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+def get_client_ip(request: Request):
+    # Support Vercel/Cloudflare X-Forwarded-For
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+limiter = Limiter(key_func=get_client_ip, default_limits=["60/minute"])
 
 app = FastAPI(
     title="Bellatrix Orbital Risk API",

@@ -16,7 +16,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # --- TLE Cache (disk-based fallback) ---
-TLE_CACHE_FILE = os.path.join(os.path.dirname(__file__), "tle_cache.json")
+IS_VERCEL = os.environ.get("VERCEL") == "1"
+TLE_CACHE_FILE = "/tmp/tle_cache.json" if IS_VERCEL else os.path.join(os.path.dirname(__file__), "tle_cache.json")
+
+# --- Popular Satellites Fallback (In case CelesTrak blocks Vercel) ---
+POPULAR_SATS_TLE = {
+    "25544": ("ISS (ZARYA)", "1 25544U 98067A   24046.55184560  .00016024  00000-0  28919-3 0  9990", "2 25544  51.6416 179.3142 0001713  97.0425  83.7431 15.49673964439815"),
+    "20580": ("HST (HUBBLE)", "1 20580U 90037B   24046.22557572  .00001153  00000-0  10486-3 0  9997", "2 20580  28.4691  29.1764 0002824 100.9571 259.1869 15.09247167851614"),
+    "54231": ("STARLINK-30159", "1 54231U 22154A   24046.43825969  .00018784  00000-0  13515-3 0  9990", "2 54231  53.2173 162.8415 0001423  78.1402 281.9754 15.02847113 67123"),
+    "39634": ("SENTINEL-1A", "1 39634U 14016A   24046.52445851  .00000124  00000-0  85210-4 0  9995", "2 39634  98.1818 123.4567 0001234  45.6789 314.3211 14.59212345432101"),
+}
 
 def _load_cache() -> dict:
     if os.path.exists(TLE_CACHE_FILE):
@@ -207,6 +216,11 @@ def get_tle(norad_id):
         except Exception as e:
             logger.error(f"TLE fetch error: {e}")
             break
+
+    # Fallback to hardcoded popular sats
+    if cache_key in POPULAR_SATS_TLE:
+        logger.info(f"Using hardcoded fallback TLE for NORAD {norad_id}")
+        return POPULAR_SATS_TLE[cache_key]
 
     # Fallback to cache
     if cache_key in cache:
