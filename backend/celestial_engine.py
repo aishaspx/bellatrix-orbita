@@ -77,7 +77,6 @@ class SatelliteSummary(BaseModel):
 def get_dashboard_data():
     """
     Returns a curated list of interesting satellites for the dashboard.
-    In a real app, this might query a database or live TLEs.
     """
     return [
         SatelliteSummary(
@@ -130,6 +129,21 @@ def get_dashboard_data():
             data_source="SpaceX"
         ),
         SatelliteSummary(
+            name="TIANHE (CSS)",
+            norad_id="25148",
+            altitude_km=385.0,
+            velocity_kms=7.68,
+            risk_level="Safe",
+            description="Chinese Space Station core module.",
+            orbit_type="LEO",
+            period_min=92.2,
+            inclination_deg=41.5,
+            apogee_km=390.0,
+            perigee_km=380.0,
+            collision_probability=0.8,
+            data_source="CNSA"
+        ),
+        SatelliteSummary(
             name="SENTINEL-1A",
             norad_id="39634",
             altitude_km=693.0,
@@ -158,9 +172,34 @@ def get_dashboard_data():
             data_source="NOAA"
         ),
         SatelliteSummary(
+            name="GPS BIIR-2 (PRN 13)",
+            norad_id="43013",
+            altitude_km=20200.0,
+            velocity_kms=3.87,
+            risk_level="Safe",
+            description="Global Positioning System navigation satellite.",
+            orbit_type="MEO",
+            period_min=718.0,
+            inclination_deg=55.1,
+            apogee_km=20210.0,
+            perigee_km=20190.0,
+            data_source="USAF"
+        ),
+        SatelliteSummary(
             name="GOES 16",
             norad_id="41866",
             altitude_km=35786.0,
+            velocity_kms=3.07,
+            risk_level="Safe",
+            description="Geostationary Operational Environmental Satellite.",
+            orbit_type="GEO",
+            period_min=1436.1,
+            inclination_deg=0.04,
+            apogee_km=35790.0,
+            perigee_km=35780.0,
+            data_source="NOAA/NASA"
+        )
+    ]
             velocity_kms=3.07,
             risk_level="Safe",
             description="Geostationary Operational Environmental Satellite.",
