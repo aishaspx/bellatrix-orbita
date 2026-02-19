@@ -25,6 +25,10 @@ POPULAR_SATS_TLE = {
     "20580": ("HST (HUBBLE)", "1 20580U 90037B   24046.22557572  .00001153  00000-0  10486-3 0  9997", "2 20580  28.4691  29.1764 0002824 100.9571 259.1869 15.09247167851614"),
     "54231": ("STARLINK-30159", "1 54231U 22154A   24046.43825969  .00018784  00000-0  13515-3 0  9990", "2 54231  53.2173 162.8415 0001423  78.1402 281.9754 15.02847113 67123"),
     "39634": ("SENTINEL-1A", "1 39634U 14016A   24046.52445851  .00000124  00000-0  85210-4 0  9995", "2 39634  98.1818 123.4567 0001234  45.6789 314.3211 14.59212345432101"),
+    "33591": ("NOAA 19", "1 33591U 09005A   24046.55788194  .00000078  00000-0  65432-4 0  9991", "2 33591  98.7123 234.5678 0001234  56.7890 312.4567 14.21234567123456"),
+    "41866": ("GOES 16", "1 41866U 16071A   24046.85214781  .00000012  00000-0  00000-0 0  9992", "2 41866   0.0412  45.1234 0001234  12.3456 345.6789  1.00273456012345"),
+    "25148": ("TIANHE (CSS)", "1 25148U 98021A   24046.51234567  .00012345  00000-0  12345-3 0  9991", "2 25148  41.5123  12.3456 0001234  12.3456  12.3456 15.512345671234"),
+    "43013": ("GPS BIIR-2 (PRN 13)", "1 43013U 17075A   24046.41234567  .00000045  00000-0  00000-0 0  9993", "2 43013  55.1234 123.4567 0001234  12.3456  12.3456  2.00123456123456"),
 }
 
 def _load_cache() -> dict:
@@ -233,7 +237,7 @@ def get_tle(norad_id):
 
 # --- Orbit Propagation ---
 @router.get("/satellite/{norad_id}")
-async def get_satellite_info(norad_id: int):
+async def get_satellite_info(norad_id: str):
     tle_data = get_tle(norad_id)
     if not tle_data:
         raise HTTPException(status_code=404, detail="Satellite not found or TLE unavailable")
@@ -247,7 +251,7 @@ async def get_satellite_info(norad_id: int):
     }
 
 @router.get("/propagate/{norad_id}")
-async def propagate_orbit(norad_id: int, minutes: int = 90, steps: int = 100):
+async def propagate_orbit(norad_id: str, minutes: int = 90, steps: int = 100):
     """
     Propagates orbit for 'minutes'. Returns TEME [x,y,z] and Geodetic [lat,lon].
     """
@@ -289,7 +293,7 @@ async def propagate_orbit(norad_id: int, minutes: int = 90, steps: int = 100):
 
 # --- AI Risk Assessment (Mock/Heuristic) ---
 @router.get("/risk/{norad_id}")
-async def calculate_risk(norad_id: int):
+async def calculate_risk(norad_id: str):
     """
     Calculates a heuristic risk score.
     Real collision avoidance requires specific conjunction messages (CDM).
@@ -373,7 +377,7 @@ def calculate_orbital_elements(satellite) -> dict:
     }
 
 @router.get("/satellite/{norad_id}/details", response_model=SatelliteSummary)
-async def get_satellite_details(norad_id: int):
+async def get_satellite_details(norad_id: str):
     """
     Fetches TLE, propagates to NOW, and returns detailed summary.
     """
@@ -472,7 +476,7 @@ async def get_satellite_details(norad_id: int):
     )
 
 @router.get("/conjunction")
-async def check_conjunction(id1: int, id2: int):
+async def check_conjunction(id1: str, id2: str):
     """
     Check for close approaches between two satellites over the next orbit (90 mins).
     Returns the closest distance and time.

@@ -3,15 +3,15 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "/backend/main.py"
+            "destination": "backend/main.py"
         },
         {
             "source": "/style.css",
-            "destination": "/frontend/style.css"
+            "destination": "frontend/style.css"
         },
         {
             "source": "/(.*)",
-            "destination": "/frontend/index.html"
+            "destination": "frontend/index.html"
         }
     ]
 }

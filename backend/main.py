@@ -32,13 +32,22 @@ logger = logging.getLogger(__name__)
 
 # --- Rate Limiter ---
 def get_client_ip(request: Request):
-    # Support Vercel/Cloudflare X-Forwarded-For
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "127.0.0.1"
 
-limiter = Limiter(key_func=get_client_ip, default_limits=["60/minute"])
+# Disable limiter on Vercel to prevent false positives in serverless
+if IS_VERCEL:
+    limiter = Limiter(key_func=get_client_ip, enabled=False)
+else:
+    limiter = Limiter(key_func=get_client_ip, default_limits=["60/minute"])
+
+import sys
+sys.path.append(os.path.dirname(__file__))
+
+from celestial_engine import router as celestial_router
+import analytics_engine
 
 app = FastAPI(
     title="Bellatrix Orbital Risk API",
