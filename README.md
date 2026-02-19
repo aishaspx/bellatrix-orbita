@@ -1,6 +1,6 @@
 # 🛰️ Bellatrix Orbita
 
-**AI-powered orbital risk intelligence platform** for satellite tracking, collision analysis, and trajectory visualization.
+**Bellatrix Orbita** is a professional-grade, AI-powered orbital risk intelligence platform. It bridges the gap between raw NORAD tracking data and actionable orbital safety analytics, providing real-time visualization and collision risk assessment for over 27,000 objects in Earth's orbit.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -8,213 +8,110 @@
 
 ---
 
-## 🌟 Features
+## 🇷🇺 Описание на русском языке
+**Bellatrix Orbita** — это аналитическая платформа для мониторинга орбитальных рисков. Проект объединяет данные слежения NORAD с алгоритмами машинного обучения для прогнозирования вероятности столкновений и визуализации траекторий спутников в реальном времени.
 
-- **� Real-time Satellite Tracking** — Monitor 27,000+ objects in orbit using NORAD TLE data
-- **🗺️ Interactive 2D/3D Visualization** — Ground tracks on world map + Three.js orbital paths
-- **🤖 AI Risk Forecasting** — Neural network-based collision probability analysis
-- **📊 Telemetry Dashboard** — Live altitude, velocity, inclination, and orbital parameters
-- **🌍 Multi-language Support** — Full English and Russian localization
-- **⚠️ Collision Alerts** — Automatic warnings for high-risk conjunctions
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Python 3.9+**
-- **pip** (Python package manager)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/bellatrix-orbita.git
-   cd bellatrix-orbita
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   pip install -r backend/requirements.txt
-   ```
-
-3. **Launch the platform:**
-   ```bash
-   ./start_bellatrix.sh
-   ```
-
-4. **Open in browser:**
-   ```
-   http://localhost:8080
-   ```
-
-The script automatically starts:
-- **Backend API** on port `8000` (FastAPI)
-- **Frontend** on port `8080` (HTTP server)
+**Основные возможности:**
+- **SGP4 Прогнозирование:** Точный расчет положения спутников на основе орбитальных элементов.
+- **AI Аналитика Рисков:** Оценка вероятности столкновений на основе сближений и устойчивости орбиты.
+- **Интерактивная 3D Визуализация:** Отображение пути спутника на 3D глобусе и 2D карте.
+- **Экспорт Отчетов:** Загрузка телеметрии в CSV и PDF отчетов о рисках.
+- **Надежность:** Кэширование данных и защита от сбоев API.
 
 ---
 
-## 📂 Project Structure
+## 🧠 How It Works (Core Logic)
 
-```
-bellatrix-orbita/
-├── backend/
-│   ├── main.py                 # FastAPI server & API routes
-│   ├── celestial_engine.py     # Orbital mechanics & propagation (SGP4)
-│   ├── analytics_engine.py     # AI risk analysis & forecasting
-│   └── requirements.txt        # Python dependencies
-├── frontend/
-│   ├── index.html              # React app (embedded JS)
-│   └── style.css               # UI styling
-├── start_bellatrix.sh          # Auto-start script
-├── LICENSE                     # MIT License
-└── README.md                   # This file
-```
+### 1. Orbital Mechanics (SGP4 Engine)
+The system uses the **Simplified General Perturbations (SGP4)** model to propagate satellite positions. 
+- **Data Input:** Raw Two-Line Element (TLE) sets from CelesTrak/NORAD.
+- **Calculation:** The `celestial_engine.py` converts TLEs into TEME (True Equator Mean Equinox) coordinates, which are then transformed into Geodetic (Latitude, Longitude, Altitude) and ECEF (Earth-Centered, Earth-Fixed) frames for visualization.
+- **Propagation:** The platform can propagate an orbit 90-180 minutes into the future to generate the high-visibility "3D Trajectory" points.
+
+### 2. AI Risk Assessment
+Collision risk is NOT just distance-based. Our **Analytics Engine** uses a multi-factor heuristic:
+- **Proximity Analysis:** Calculates the "Close Approach" distance using future propagation steps.
+- **Velocity Differential:** High-speed intersections in Low Earth Orbit (LEO) increase the risk score exponentially.
+- **Stability Index:** An AI-generated metric (0-100%) that evaluates the consistency of the satellite's orbital parameters over time.
+- **Trend Analysis:** Generates a 7-day risk trend using time-series forecasting to predict future instabilities.
+
+### 3. Reliability & Resilience (The "Phase 20" Upgrades)
+- **TLE Disk Cache:** If the external CelesTrak API goes down, Bellatrix reverts to `tle_cache.json` (a disk-based fallback), ensuring 99.9% uptime.
+- **Retry Logic:** Implements exponential backoff (3 attempts: 1s → 2s → 4s) for all external network requests.
+- **Rate Limiting:** Protects the server from DDoS or heavy scraping using `slowapi` (default 60 requests/minute per IP).
 
 ---
 
 ## 🛠️ Technology Stack
 
-### Backend
-- **FastAPI** — High-performance async API framework
-- **SGP4** — Satellite orbit propagation (NORAD algorithms)
-- **Uvicorn** — ASGI server
+### Backend (The Brain)
+- **FastAPI:** High-speed asynchronous Python framework.
+- **SGP4 & Skyfield:** Industrial-standard libraries for orbital physics.
+- **ReportLab:** Dynamically generates PDF risk reports.
+- **SlowAPI:** Security and rate control.
 
-### Frontend
-- **React** — Component-based UI
-- **Three.js** — 3D orbital visualization
-- **Vanilla CSS** — Custom styling with glassmorphism effects
-
-### Data Sources
-- **NORAD** — Two-Line Element (TLE) sets
-- **CelesTrak** — Satellite catalog API
-- **NASA/SpaceX** — Public orbital data
+### Frontend (The HUD)
+- **React (CDN):** Component-based architecture for the glassmorphism UI.
+- **Three.js:** Renders the 3D Earth, Atmosphere glow, and Satellite models.
+- **CSS3:** Advanced dark-mode aesthetics with neon glowing accents.
 
 ---
 
-## 📖 Usage Guide
+## 📂 Architecture
 
-### 1. Search & Track Satellites
-Navigate to the **Calculator** tab and search by:
-- **NORAD ID** (e.g., `25544` for ISS)
-- **Satellite Name** (e.g., "Starlink")
-
-### 2. Analyze Risk
-Select a satellite to view:
-- Real-time telemetry (altitude, velocity, inclination)
-- Collision probability
-- AI stability forecasts
-
-### 3. Visualize Orbits
-Click the **Map** button to see:
-- Current position on Earth
-- 2D ground track (dotted line)
-- 3D orbital path (point cloud)
-
-### 4. AI Forecasting
-Go to **AI Forecast** tab for:
-- 7-day risk trend analysis
-- Neural network stability predictions
-- Global sector readiness statistics
-
----
-
-## 🔧 Development
-
-### Running in Development Mode
-
-**Backend only:**
 ```bash
-cd backend
-uvicorn main:app --reload --port 8000
+bellatrix-orbita/
+├── backend/
+│   ├── main.py             # API Router, Rate Limiting, & PDF/CSV Export
+│   ├── celestial_engine.py # TLE Fetching, SGP4 Propagation, Caching
+│   ├── analytics_engine.py # AI Risk Heuristics & Global Stats
+│   ├── test_backend.py     # 20+ Unit Tests (High Coverage)
+│   └── requirements.txt    # dependencies (fastapi, sgp4, reportlab, etc.)
+├── frontend/
+│   ├── index.html          # SPA Entry Point & Translation Engine
+│   └── style.css           # Mobile-responsive styles (3 Breakpoints)
+└── start_bellatrix.sh      # One-click startup script (macOS/Linux)
 ```
 
-**Frontend only:**
-```bash
-cd frontend
-python3 -m http.server 8080
-```
+---
 
-### Modifying the Code
-- **UI changes:** Edit `frontend/index.html` or `frontend/style.css`
-- **API logic:** Edit `backend/main.py`
-- **Orbital calculations:** Edit `backend/celestial_engine.py`
-- **AI analytics:** Edit `backend/analytics_engine.py`
+## 🚀 Installation & Setup
+
+1. **Clone & Enter:**
+   ```bash
+   git clone https://github.com/aishaspx/bellatrix-orbita.git
+   cd bellatrix-orbita
+   ```
+
+2. **Install Dependencies:**
+   ```bash
+   pip install -r backend/requirements.txt
+   ```
+
+3. **Run Locally:**
+   ```bash
+   ./start_bellatrix.sh
+   ```
+
+4. **Run Tests (Verification):**
+   ```bash
+   cd backend && python3 -m pytest test_backend.py -v
+   ```
 
 ---
 
-## � API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/satellites` | GET | List all tracked satellites |
-| `/api/satellite/{id}/details` | GET | Get satellite telemetry |
-| `/api/propagate/{id}` | GET | Calculate future positions |
-| `/api/analytics/{id}` | GET | AI risk analysis |
-| `/api/stats` | GET | Global statistics |
-| `/api/search?q={query}` | GET | Search satellites by name/ID |
-
----
-
-## 🌐 Localization
-
-The platform supports:
-- 🇬🇧 **English** (default)
-- 🇷🇺 **Russian** (полная локализация)
-
-Switch languages using the **EN/RU** toggle in the navigation bar.
+## 📈 Roadmap
+- [x] **v1.0**: Core SGP4 Engine & 3D Visualization.
+- [x] **v1.1**: Reliability Update (Cache, Rate Limiting, PDF Export).
+- [ ] **v1.2**: User Authentication & Saved Satellite Constellations.
+- [ ] **v1.3**: Real-time Socket.io updates for telemetry.
 
 ---
 
 ## 📜 License
+Licensed under the [MIT License](LICENSE).
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
-### Third-Party Data Attribution
-Satellite orbital data (TLE) is provided by:
-- NORAD (North American Aerospace Defense Command)
-- CelesTrak ([celestrak.org](https://celestrak.org))
-- NASA & SpaceX
-
-All TLE data is in the public domain and used in accordance with respective data policies.
+**Data Attribution:** Data provided by NASA, ESA, SpaceX, CelesTrak, and NORAD.
 
 ---
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 🐛 Known Issues
-
-- **Chrome requirement:** The `open_browser_url` tool requires Chrome for automated testing
-- **CORS:** Ensure backend and frontend run on specified ports to avoid cross-origin issues
-
----
-
-## 📧 Contact
-
-**Project Maintainer:** Bellatrix Orbita Team  
-**Repository:** [github.com/YOUR_USERNAME/bellatrix-orbita](https://github.com/YOUR_USERNAME/bellatrix-orbita)
-
----
-
-## 🙏 Acknowledgments
-
-- **CelesTrak** for providing free satellite tracking data
-- **NORAD** for TLE orbital elements
-- **Three.js** community for 3D visualization tools
-- **FastAPI** team for the excellent framework
-
----
-
-**⭐ If you find this project useful, please consider giving it a star!**
-# bellatrix
-# bellatrix-orbita
+**⭐ If you find Bellatrix useful, please consider giving it a star on GitHub!**
