@@ -179,9 +179,10 @@ def get_tle(norad_id):
     cache_key = str(norad_id)
     url_tle = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=tle"
 
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
     for attempt in range(3):
         try:
-            response = requests.get(url_tle, timeout=10)
+            response = requests.get(url_tle, headers=headers, timeout=10)
             response.raise_for_status()
             lines = response.text.strip().splitlines()
             if len(lines) >= 3:
@@ -517,9 +518,10 @@ async def search_satellites(q: str):
     else:
         params["NAME"] = q
 
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
     for attempt in range(3):
         try:
-            response = requests.get(base_url, params=params, timeout=10)
+            response = requests.get(base_url, params=params, headers=headers, timeout=10)
             if response.status_code != 200:
                 return []
             data = response.json()

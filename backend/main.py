@@ -10,6 +10,10 @@ import csv
 import datetime
 import logging
 
+import os
+import sys
+sys.path.append(os.path.dirname(__file__))
+
 from celestial_engine import router as celestial_router
 import analytics_engine
 
