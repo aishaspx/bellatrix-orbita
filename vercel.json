@@ -16,6 +16,14 @@
             "dest": "backend/main.py"
         },
         {
+            "src": "/style.css",
+            "dest": "frontend/style.css"
+        },
+        {
+            "src": "/app.js",
+            "dest": "frontend/app.js"
+        },
+        {
             "src": "/(.*)",
             "dest": "frontend/index.html"
         }
