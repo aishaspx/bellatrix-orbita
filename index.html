@@ -26,7 +26,7 @@
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 </head>
 
-<body>
+<body style="margin: 0; padding: 0; background-color: #020204; color: #ffffff; font-family: 'Inter', sans-serif;">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -1318,8 +1318,25 @@
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // Initialize React App with error handling
+        try {
+            const rootElement = document.getElementById('root');
+            if (!rootElement) {
+                throw new Error('Root element not found');
+            }
+            const root = ReactDOM.createRoot(rootElement);
+            root.render(<App />);
+        } catch (error) {
+            console.error('Failed to initialize React app:', error);
+            document.body.innerHTML = `
+                <div style="padding: 2rem; color: #ff0055; text-align: center; background: #05070a; min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                    <h2 style="font-family: 'Cinzel', serif;">System Error</h2>
+                    <p>Failed to initialize application. Please refresh the page.</p>
+                    <pre style="background: #111; padding: 1rem; border-radius: 8px; text-align: left; max-width: 600px; overflow: auto;">${error.toString()}</pre>
+                    <button onclick="window.location.reload()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #00f3ff; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Reload Page</button>
+                </div>
+            `;
+        }
     </script>
 </body>
 
