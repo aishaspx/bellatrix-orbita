@@ -35,6 +35,50 @@
             ? 'http://localhost:8000/api'
             : '/api';
 
+        // --- Robust API Fetch Helper with Retry ---
+        async function fetchWithRetry(url, options = {}, maxRetries = 3, timeout = 10000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    // Check if response is ok
+                    if (!response.ok) {
+                        if (response.status >= 500 && attempt < maxRetries - 1) {
+                            // Retry on server errors
+                            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                            continue;
+                        }
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    // Try to parse JSON, but handle non-JSON responses
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return await response.json();
+                    } else {
+                        return await response.text();
+                    }
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    if (error.name === 'AbortError') {
+                        throw new Error('Request timeout');
+                    }
+                    if (attempt === maxRetries - 1) {
+                        throw error;
+                    }
+                    // Wait before retry (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                }
+            }
+        }
+
         // --- TRANSLATIONS ---
         const TRANSLATIONS = {
             en: {
@@ -780,10 +824,9 @@
                 progressRef.current = 0;
 
                 // Fetch new trajectory
-                fetch(`${API_BASE}/propagate/${selectedSat.norad_id}`)
-                    .then(res => res.json())
+                fetchWithRetry(`${API_BASE}/propagate/${selectedSat.norad_id}`, {}, 2, 15000)
                     .then(data => {
-                        if (data.trajectory && data.trajectory.length > 0) {
+                        if (data && data.trajectory && data.trajectory.length > 0) {
                             const points = data.trajectory.map(p => {
                                 const scale = 5 / 6371;
                                 return new THREE.Vector3(p.x * scale, p.y * scale, p.z * scale);
@@ -826,18 +869,36 @@
             const [globalStats, setGlobalStats] = useState(null);
 
             useEffect(() => {
-                fetch(`${API_BASE}/stats`)
-                    .then(res => res.json())
-                    .then(setGlobalStats)
-                    .catch(err => console.error("Stats fetch failed:", err));
+                fetchWithRetry(`${API_BASE}/stats`, {}, 2, 8000)
+                    .then(data => {
+                        if (data && typeof data === 'object') {
+                            setGlobalStats(data);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Stats fetch failed:", err);
+                        // Set fallback stats
+                        setGlobalStats({
+                            total_tracked: 0,
+                            high_risk_count: 0,
+                            system_health: "Unknown",
+                            last_update: new Date().toISOString()
+                        });
+                    });
             }, []);
 
             useEffect(() => {
                 if (!selectedSat) return;
-                fetch(`${API_BASE}/analytics/${selectedSat.norad_id}`)
-                    .then(res => res.json())
-                    .then(setAnalytics)
-                    .catch(err => console.error("Analytics fetch failed:", err));
+                fetchWithRetry(`${API_BASE}/analytics/${selectedSat.norad_id}`, {}, 2, 10000)
+                    .then(data => {
+                        if (data && typeof data === 'object') {
+                            setAnalytics(data);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Analytics fetch failed:", err);
+                        setAnalytics(null);
+                    });
             }, [selectedSat]);
 
             return (
@@ -927,14 +988,14 @@
                 if (!selectedSat) return;
                 setLoading(true);
                 // Fetch 180 minutes of propagation for ground track (approx 2 orbits)
-                fetch(`${API_BASE}/propagate/${selectedSat.norad_id}?minutes=180&steps=200`)
-                    .then(res => res.json())
+                fetchWithRetry(`${API_BASE}/propagate/${selectedSat.norad_id}?minutes=180&steps=200`, {}, 2, 15000)
                     .then(data => {
-                        setGroundTrack(data.trajectory || []);
+                        setGroundTrack((data && data.trajectory) ? data.trajectory : []);
                         setLoading(false);
                     })
                     .catch(err => {
                         console.error("Map propagation failed:", err);
+                        setGroundTrack([]);
                         setLoading(false);
                     });
             }, [selectedSat]);
@@ -1077,10 +1138,23 @@
                         }
                     } catch (e) { /* ignore corrupt cache */ }
                 }
-                fetch(`${API_BASE}/satellites`)
-                    .then(res => res.json())
-                    .then(data => { setSatellites(data); setLoading(false); })
-                    .catch(err => { console.error("Failed to fetch satellites:", err); setLoading(false); });
+                fetchWithRetry(`${API_BASE}/satellites`)
+                    .then(data => { 
+                        if (Array.isArray(data)) {
+                            setSatellites(data); 
+                        } else {
+                            // Fallback to empty array if invalid response
+                            setSatellites([]);
+                        }
+                        setLoading(false); 
+                    })
+                    .catch(err => { 
+                        console.error("Failed to fetch satellites:", err); 
+                        // Fallback to empty array on error
+                        setSatellites([]);
+                        setLoading(false);
+                        showToast && showToast("Failed to load satellites. Using cached data.", 'info');
+                    });
             }, []);
 
             // Save to localStorage whenever satellites list changes
@@ -1094,10 +1168,19 @@
                 localStorage.removeItem(HISTORY_KEY);
                 setSatellites([]);
                 setLoading(true);
-                fetch(`${API_BASE}/satellites`)
-                    .then(res => res.json())
-                    .then(data => { setSatellites(data); setLoading(false); })
-                    .catch(() => setLoading(false));
+                fetchWithRetry(`${API_BASE}/satellites`)
+                    .then(data => { 
+                        if (Array.isArray(data)) {
+                            setSatellites(data); 
+                        } else {
+                            setSatellites([]);
+                        }
+                        setLoading(false); 
+                    })
+                    .catch(() => {
+                        setSatellites([]);
+                        setLoading(false);
+                    });
             };
 
             const performSearch = () => {
@@ -1126,8 +1209,7 @@
                 setLoading(true);
                 setSearchResults([]); // Clear previous
 
-                fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}`)
-                    .then(res => res.json())
+                fetchWithRetry(`${API_BASE}/search?q=${encodeURIComponent(q)}`, {}, 2, 8000)
                     .then(results => {
                         setLoading(false);
                         if (!Array.isArray(results) || results.length === 0) {
@@ -1141,7 +1223,7 @@
                         }
                     })
                     .catch(err => {
-                        console.error(err);
+                        console.error("Search error:", err);
                         setLoading(false);
                         showToast(t.err_search_fail, 'error');
                     });
@@ -1150,12 +1232,11 @@
             const addToDashboard = (id) => {
                 setLoading(true);
                 setSearchResults([]); // Hide list
-                fetch(`${API_BASE}/satellite/${id}/details`)
-                    .then(res => {
-                        if (!res.ok) throw new Error("Not Found");
-                        return res.json();
-                    })
+                fetchWithRetry(`${API_BASE}/satellite/${id}/details`, {}, 2, 8000)
                     .then(newSat => {
+                        if (!newSat || !newSat.norad_id) {
+                            throw new Error("Invalid satellite data");
+                        }
                         // Check if already exists
                         if (!satellites.find(s => s.norad_id === newSat.norad_id)) {
                             setSatellites(prev => [...prev, newSat]);
@@ -1165,6 +1246,7 @@
                         setLoading(false);
                     })
                     .catch(err => {
+                        console.error("Details fetch error:", err);
                         showToast(t.err_details_fail, 'error');
                         setLoading(false);
                     });
