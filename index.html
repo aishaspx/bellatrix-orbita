@@ -1243,39 +1243,48 @@
 
         // --- MAIN APP ---
         function Sitemap({ t }) {
+            const linkStyle = {
+                color: '#aaa',
+                textDecoration: 'none',
+                display: 'block',
+                padding: '0.25rem 0',
+                transition: 'color 0.2s ease',
+                cursor: 'default'
+            };
+            
             return (
                 <div style={{ padding: '4rem 2rem', background: '#05070a', borderTop: '1px solid #111', color: '#666', fontSize: '0.8rem' }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem' }}>
                         <div>
                             <h4 style={{ color: '#fff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>{t.s_nav}</h4>
                             <ul style={{ listStyle: 'none', padding: 0 }}>
-                                <li>{t.nav_home}</li>
-                                <li>{t.s_calc}</li>
-                                <li>{t.s_map}</li>
-                                <li>{t.s_forecast}</li>
-                                <li>{t.s_guide}</li>
+                                <li style={linkStyle}>{t.nav_home}</li>
+                                <li style={linkStyle}>{t.s_calc}</li>
+                                <li style={linkStyle}>{t.s_map}</li>
+                                <li style={linkStyle}>{t.s_forecast}</li>
+                                <li style={linkStyle}>{t.s_guide}</li>
                             </ul>
                         </div>
                         <div>
                             <h4 style={{ color: '#fff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>{t.s_intel}</h4>
                             <ul style={{ listStyle: 'none', padding: 0 }}>
-                                <li>{t.s_prop}</li>
-                                <li>{t.s_risk}</li>
-                                <li>{t.s_ground}</li>
-                                <li>{t.s_ready}</li>
+                                <li style={linkStyle}>{t.s_prop}</li>
+                                <li style={linkStyle}>{t.s_risk}</li>
+                                <li style={linkStyle}>{t.s_ground}</li>
+                                <li style={linkStyle}>{t.s_ready}</li>
                             </ul>
                         </div>
                         <div>
                             <h4 style={{ color: '#fff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>{t.s_legal}</h4>
                             <ul style={{ listStyle: 'none', padding: 0 }}>
-                                <li>{t.s_terms}</li>
-                                <li>{t.s_policy}</li>
-                                <li>NORAD Catalog</li>
+                                <li style={linkStyle}>{t.s_terms}</li>
+                                <li style={linkStyle}>{t.s_policy}</li>
+                                <li style={linkStyle}>NORAD Catalog</li>
                             </ul>
                         </div>
                         <div>
                             <h4 style={{ color: '#00f3ff', marginBottom: '1rem', fontFamily: 'Cinzel' }}>BELLATRIX V4.0</h4>
-                            <p>{t.s_platform}</p>
+                            <p style={{ color: '#aaa', lineHeight: '1.6' }}>{t.s_platform}</p>
                         </div>
                     </div>
                 </div>
