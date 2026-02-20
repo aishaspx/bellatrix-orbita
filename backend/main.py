@@ -1,22 +1,18 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import os
+import sys
 import io
 import csv
-import datetime
-import logging
-
-import os
-import sys
 import json
 import time
+import datetime
 import logging
 import requests
-import datetime
 import numpy as np
 from datetime import timezone
 from typing import List, Optional
@@ -43,7 +39,6 @@ if IS_VERCEL:
 else:
     limiter = Limiter(key_func=get_client_ip, default_limits=["60/minute"])
 
-import sys
 sys.path.append(os.path.dirname(__file__))
 
 from celestial_engine import router as celestial_router
@@ -69,11 +64,20 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # --- CORS ---
+# Allow specific origins in production, or all in development
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*").split(",")
+if CORS_ORIGINS == ["*"]:
+    # Development mode - allow all origins
+    allow_origins = ["*"]
+else:
+    # Production mode - use specific origins
+    allow_origins = [origin.strip() for origin in CORS_ORIGINS]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=allow_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -93,8 +97,15 @@ async def health_check():
 # --- Analytics Endpoints ---
 @app.get("/api/analytics/{norad_id}")
 @limiter.limit("30/minute")
-async def get_sat_analytics(request: Request, norad_id: str, days: int = 7):
-    return analytics_engine.generate_risk_trend(norad_id, days)
+async def get_sat_analytics(
+    request: Request, 
+    norad_id: str, 
+    days: int = Query(7, ge=1, le=365, description="Number of days for trend analysis (1-365)")
+):
+    """Get satellite risk trend analytics."""
+    if not norad_id or not norad_id.strip():
+        return JSONResponse(status_code=400, content={"error": "Invalid NORAD ID"})
+    return analytics_engine.generate_risk_trend(norad_id.strip(), days)
 
 @app.get("/api/stats")
 @limiter.limit("30/minute")
@@ -108,9 +119,11 @@ async def export_csv(request: Request, norad_id: str):
     """Export satellite telemetry as a downloadable CSV file."""
     from celestial_engine import get_tle
     from sgp4.api import Satrec, jday
-    import numpy as np
 
-    tle_data = get_tle(norad_id)
+    if not norad_id or not norad_id.strip():
+        return JSONResponse(status_code=400, content={"error": "Invalid NORAD ID"})
+    
+    tle_data = get_tle(norad_id.strip())
     if not tle_data:
         return JSONResponse(status_code=404, content={"error": "Satellite not found"})
 
@@ -160,9 +173,11 @@ async def export_pdf(request: Request, norad_id: str):
 
     from celestial_engine import get_tle, calculate_orbital_elements
     from sgp4.api import Satrec, jday
-    import numpy as np
 
-    tle_data = get_tle(norad_id)
+    if not norad_id or not norad_id.strip():
+        return JSONResponse(status_code=400, content={"error": "Invalid NORAD ID"})
+    
+    tle_data = get_tle(norad_id.strip())
     if not tle_data:
         return JSONResponse(status_code=404, content={"error": "Satellite not found"})
 

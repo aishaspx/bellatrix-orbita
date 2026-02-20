@@ -6,11 +6,11 @@
             "use": "@vercel/python"
         },
         {
-            "src": "*.html",
+            "src": "index.html",
             "use": "@vercel/static"
         },
         {
-            "src": "*.css",
+            "src": "style.css",
             "use": "@vercel/static"
         },
         {
@@ -18,14 +18,14 @@
             "use": "@vercel/static"
         }
     ],
-    "rewrites": [
+    "routes": [
         {
-            "source": "/api/(.*)",
-            "destination": "backend/main.py"
+            "src": "^/api/(.*)$",
+            "dest": "backend/main.py"
         },
         {
-            "source": "/(.*)",
-            "destination": "/$1"
+            "src": "^/(.*)$",
+            "dest": "/index.html"
         }
     ]
 }

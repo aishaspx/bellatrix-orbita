@@ -31,7 +31,9 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        const API_BASE = "/api";
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000/api'
+            : '/api';
 
         // --- TRANSLATIONS ---
         const TRANSLATIONS = {
@@ -252,6 +254,68 @@
         };
 
         // --- COMPONENTS ---
+
+        // Toast Notification Component
+        function Toast({ message, type = 'error', onClose, index = 0 }) {
+            const colors = {
+                error: { bg: 'rgba(255, 0, 85, 0.15)', border: '#ff0055', text: '#ffcccb' },
+                success: { bg: 'rgba(0, 255, 136, 0.15)', border: '#00ff88', text: '#b3ffdd' },
+                info: { bg: 'rgba(0, 243, 255, 0.15)', border: '#00f3ff', text: '#b3ffff' }
+            };
+            const style = colors[type] || colors.error;
+
+            return (
+                <div style={{
+                    position: 'fixed', top: `${20 + index * 80}px`, right: '20px', zIndex: 10000,
+                    background: style.bg, border: `1px solid ${style.border}`, borderRadius: '8px',
+                    padding: '1rem 1.5rem', minWidth: '300px', maxWidth: '500px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem',
+                    animation: 'slideIn 0.3s ease-out'
+                }}>
+                    <span style={{ color: style.text, flex: 1 }}>{message}</span>
+                    <button onClick={onClose} style={{
+                        background: 'transparent', border: 'none', color: style.text,
+                        cursor: 'pointer', fontSize: '1.2rem', padding: '0', width: '24px', height: '24px'
+                    }}>×</button>
+                    <style>{`
+                        @keyframes slideIn {
+                            from { transform: translateX(100%); opacity: 0; }
+                            to { transform: translateX(0); opacity: 1; }
+                        }
+                    `}</style>
+                </div>
+            );
+        }
+
+        // Toast Manager Hook
+        function useToast() {
+            const [toasts, setToasts] = useState([]);
+
+            const showToast = (message, type = 'error') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type }]);
+                setTimeout(() => {
+                    setToasts(prev => prev.filter(t => t.id !== id));
+                }, 5000);
+            };
+
+            const ToastContainer = () => (
+                <React.Fragment>
+                    {toasts.map((toast, index) => (
+                        <Toast
+                            key={toast.id}
+                            message={toast.message}
+                            type={toast.type}
+                            index={index}
+                            onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                        />
+                    ))}
+                </React.Fragment>
+            );
+
+            return [showToast, ToastContainer];
+        }
 
         // Error Boundary to prevent "Black Screens" by catching render errors in sub-components
         class ErrorBoundary extends React.Component {
@@ -994,7 +1058,7 @@
 
         const HISTORY_KEY = "bellatrix_sat_history";
 
-        function CalculatorView({ t, selectedSat, setSelectedSat, showOnMap }) {
+        function CalculatorView({ t, selectedSat, setSelectedSat, showOnMap, showToast }) {
             const [satellites, setSatellites] = useState([]);
             const [loading, setLoading] = useState(true);
             const [searchId, setSearchId] = useState("");
@@ -1037,17 +1101,37 @@
             };
 
             const performSearch = () => {
-                if (!searchId) return;
+                const q = (searchId || "").trim();
+                if (!q) {
+                    return;
+                }
+
+                // 1) Быстрый локальный поиск по уже загруженным спутникам
+                const lowerQ = q.toLowerCase();
+                const localMatches = satellites.filter((s) => {
+                    return (
+                        (s.norad_id && s.norad_id.toString() === q) ||
+                        (s.name && s.name.toLowerCase().includes(lowerQ))
+                    );
+                });
+
+                if (localMatches.length > 0) {
+                    // Если нашли в локальном списке — просто выделяем
+                    const found = localMatches[0];
+                    setSelectedSat(found);
+                    return;
+                }
+
+                // 2) Если локально не нашли — пробуем бэкенд‑поиск
                 setLoading(true);
                 setSearchResults([]); // Clear previous
 
-                // New Search Logic
-                fetch(`${API_BASE}/search?q=${searchId}`)
+                fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}`)
                     .then(res => res.json())
                     .then(results => {
                         setLoading(false);
-                        if (results.length === 0) {
-                            alert(t.err_not_found);
+                        if (!Array.isArray(results) || results.length === 0) {
+                            showToast(t.err_not_found, 'error');
                         } else if (results.length === 1) {
                             // Perfect match, add directly
                             addToDashboard(results[0].norad_id);
@@ -1059,7 +1143,7 @@
                     .catch(err => {
                         console.error(err);
                         setLoading(false);
-                        alert(t.err_search_fail);
+                        showToast(t.err_search_fail, 'error');
                     });
             };
 
@@ -1081,7 +1165,7 @@
                         setLoading(false);
                     })
                     .catch(err => {
-                        alert(t.err_details_fail);
+                        showToast(t.err_details_fail, 'error');
                         setLoading(false);
                     });
             };
@@ -1128,7 +1212,9 @@
                                 {searchResults.map(res => (
                                     <div key={res.norad_id}
                                         onClick={() => addToDashboard(res.norad_id)}
-                                        style={{ padding: '0.8rem', borderBottom: '1px solid #222', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center hover:bg-white/10' }}>
+                                        style={{ padding: '0.8rem', borderBottom: '1px solid #222', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                         <span style={{ color: 'white' }}>{res.name}</span>
                                         <span style={{ color: '#666', fontSize: '0.8rem' }}>#{res.norad_id}</span>
                                     </div>
@@ -1200,6 +1286,7 @@
             const [currentView, setView] = useState('home');
             const [lang, setLang] = useState('en');
             const [selectedSat, setSelectedSat] = useState(null);
+            const [showToast, ToastContainer] = useToast();
 
             // Handler to go to map with a specific satellite
             const showOnMap = (sat) => {
@@ -1215,8 +1302,9 @@
                     {currentView === 'guide' && <ErrorBoundary><GuideView t={TRANSLATIONS[lang]} /></ErrorBoundary>}
                     {currentView === 'map' && <ErrorBoundary><WorldMapView t={TRANSLATIONS[lang]} selectedSat={selectedSat} /></ErrorBoundary>}
                     {currentView === 'forecast' && <ErrorBoundary><ForecastView t={TRANSLATIONS[lang]} selectedSat={selectedSat} /></ErrorBoundary>}
-                    {currentView === 'calc' && <ErrorBoundary><CalculatorView t={TRANSLATIONS[lang]} selectedSat={selectedSat} setSelectedSat={setSelectedSat} showOnMap={showOnMap} /></ErrorBoundary>}
+                    {currentView === 'calc' && <ErrorBoundary><CalculatorView t={TRANSLATIONS[lang]} selectedSat={selectedSat} setSelectedSat={setSelectedSat} showOnMap={showOnMap} showToast={showToast} /></ErrorBoundary>}
                     <Sitemap t={TRANSLATIONS[lang]} />
+                    <ToastContainer />
                 </React.Fragment>
             );
         }
