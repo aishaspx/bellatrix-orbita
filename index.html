@@ -1254,8 +1254,8 @@
 
             return (
                 <div className="calculator-layout">
-                    {/* Top Row: Search & List */}
-                    <div style={{ gridArea: 'list', display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: '0', overflowY: 'auto', position: 'relative' }}>
+                    {/* Search Row - полностью сверху */}
+                    <div style={{ gridArea: 'search', display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0, position: 'relative' }}>
                         <div style={{ display: 'flex', gap: '0.5rem', position: 'relative', zIndex: 10 }}>
                             <input
                                 type="text"
@@ -1295,19 +1295,19 @@
                                 </div>
                             )}
                         </div>
-
                         {/* Clear History Button */}
                         {satellites.length > 0 && (
                             <button onClick={clearHistory} style={{
                                 background: 'transparent', border: '1px solid #333', color: '#666',
                                 padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer',
-                                fontSize: '0.75rem', alignSelf: 'flex-end'
+                                fontSize: '0.75rem', alignSelf: 'flex-start'
                             }}>
                                 🗑 {t.btn_clear}
                             </button>
                         )}
                     </div>
 
+                    {/* List of satellites */}
                     <div className="dashboard-grid">
                         {loading ? <div className="state-msg">{t.calc_init}</div> :
                             satellites.map(sat => (

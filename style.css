@@ -264,10 +264,11 @@ body {
     height: calc(100vh - 80px);
     /* Adjust for header */
     grid-template-areas:
+        "search search"
         "list list"
         "detail viz";
     grid-template-columns: 350px 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
 }
 
 .dashboard-grid {
@@ -456,6 +457,7 @@ body {
         grid-template-columns: 1fr;
         grid-template-rows: auto;
         grid-template-areas:
+            "search"
             "list"
             "detail"
             "viz";
@@ -500,6 +502,7 @@ body {
     .calculator-layout {
         grid-template-columns: 1fr;
         grid-template-areas:
+            "search"
             "list"
             "detail"
             "viz";
